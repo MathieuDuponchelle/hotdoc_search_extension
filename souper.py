@@ -44,10 +44,14 @@ def parse_file(filename):
             search_index[filtered].add(anchor_id.strip())
 
 def filtered_frozen_lookup(self, word):
+    print ("looking for word", word)
+    from datetime import datetime
+    n = datetime.now()
     word = word.replace('.', '}')
     word = word.replace('_', '|')
-    print ("looking for word", word)
-    return fdawg.lookup(word)
+    res = self.lookup(word)
+    print ("lookup takes", datetime.now() - n)
+    return res
 
 if __name__=='__main__':
     for root, dirs, files in os.walk(sys.argv[1]):

@@ -119,15 +119,9 @@ class Dawg:
         self.root.numReachable()
 
     def _minimize(self, downTo):
-        # proceed from the leaf up to a certain point
         for i in range(len(self.uncheckedNodes) - 1, downTo - 1, -1):
             (parent, letter, child) = self.uncheckedNodes[i]
-            if child in self.minimizedNodes and False:
-                # replace the child with the previously encountered one
-                parent.edges[letter] = self.minimizedNodes[child]
-            else:
-                # add the state to the minimized nodes.
-                self.minimizedNodes[child] = child
+            self.minimizedNodes[child] = child
             self.uncheckedNodes.pop()
 
     def lookup(self, word):
@@ -321,6 +315,7 @@ class FrozenDawgNode:
 class FrozenDawg:
     def __init__(self, data):
         self.data = data
+        self.root = self.get_node_by_index(0) 
 
     def get_node_by_index(self, index):
         bnode = int.from_bytes(self.data[index * 4:index * 4 + 4],
@@ -328,52 +323,25 @@ class FrozenDawg:
         fnode = FrozenDawgNode(self, bnode)
         return fnode
 
-    def bft(self, node, function):
-        node.letter = None
-        visited = set()
-        queue = [[node]]
-
-        while queue:
-            path = queue.pop(0)
-
-            vertex = path[-1]
-
-            if id(vertex) not in visited:
-                cnodes = sorted(vertex.get_edges().items())
-                for letter, node in cnodes:
-                    new_path = list(path)
-                    new_path.append(node)
-                    function(node)
-                    queue.append(new_path)
-
-                visited.add(id(vertex))
-
     def inc_count(self, node):
         if node.final:
             self.current_count += 1
 
     def lookup(self, word):
-        node = self.get_node_by_index(0)
-        skipped = 0  # keep track of number of final nodes that we skipped
+        node = self.root
         for letter in word:
-            if letter not in node.get_edges():
-                return -1
-            for label, child in sorted(node.get_edges().items()):
+            edges = node.get_edges()
+            if letter not in edges:
+                return False
+            for label, child in sorted(edges.items()):
                 if label == letter:
-                    if node.final:
-                        skipped += 1
                     node = child
                     break
-                self.current_count = 0
-                if child.final:
-                    self.current_count += 1
-                self.bft(child, self.inc_count)
-                skipped += self.current_count
 
         if node.final:
-            return skipped
+            return True
 
-        return -1
+        return False
 
 if __name__ == '__main__':
     import sys
