@@ -18,9 +18,6 @@ class DawgNode:
         self.final = False
         self.edges = {}
 
-        # Number of end nodes reachable from this one.
-        self.count = 0
-
     def __str__(self):
         arr = []
         if self.final:
@@ -40,22 +37,6 @@ class DawgNode:
     def __eq__(self, other):
         return self.__str__() == other.__str__()
 
-    def numReachable(self):
-        # if a count is already assigned, return it
-        if self.count:
-            return self.count
-
-        # count the number of final nodes that are reachable from this one.
-        # including self
-        count = 0
-        if self.final:
-            count += 1
-        for label, node in sorted(self.edges.items()):
-            count += node.numReachable()
-
-        self.count = count
-        return count
-
 class Dawg:
 
     def __init__(self):
@@ -68,9 +49,6 @@ class Dawg:
         # Here is a list of unique nodes that have been checked for
         # duplication.
         self.minimizedNodes = {}
-
-        # Here is the data associated with all the nodes
-        self.data = []
 
     def insert(self, word, data):
         if word == self.previousWord:
@@ -92,8 +70,6 @@ class Dawg:
         # point.
         self._minimize(commonPrefix)
 
-        self.data.append(data)
-
         # add the suffix, starting from the correct node mid-way through the
         # graph
         if len(self.uncheckedNodes) == 0:
@@ -114,9 +90,6 @@ class Dawg:
         # minimize all uncheckedNodes
         self._minimize(0)
 
-        # go through entire structure and assign the counts to each node.
-        self.root.numReachable()
-
     def _minimize(self, downTo):
         for i in range(len(self.uncheckedNodes) - 1, downTo - 1, -1):
             (parent, letter, child) = self.uncheckedNodes[i]
@@ -125,7 +98,6 @@ class Dawg:
 
     def lookup(self, word):
         node = self.root
-        skipped = 0  # keep track of number of final nodes that we skipped
         for letter in word:
             if letter not in node.edges:
                 return None
@@ -135,10 +107,9 @@ class Dawg:
                         skipped += 1
                     node = child
                     break
-                skipped += child.count
 
         if node.final:
-            return self.data[skipped]
+            return True
 
     def nodeCount(self):
         return len(self.minimizedNodes)
@@ -271,7 +242,6 @@ class FrozenDawgNode:
         self.bft_last = bool(bnode & BFT_LAST_MASK)
         self.first_child_id = int(bnode >> 7)
         self.dawg = dawg
-        self.count = None
         self.edges = None
 
     def get_edges(self):
@@ -295,22 +265,6 @@ class FrozenDawgNode:
         return ' '.join([str(self.first_child_id), str(self.bft_last),
             str(self.final), str(self.letter)])
 
-    def numReachable(self):
-        # if a count is already assigned, return it
-        if self.count:
-            return self.count
-
-        # count the number of final nodes that are reachable from this one.
-        # including self
-        count = 0
-        if self.final:
-            count += 1
-        for label, node in sorted(self.get_edges().items()):
-            count += node.numReachable()
-
-        self.count = count
-        return count
-
 class FrozenDawg:
     def __init__(self, data):
         self.data = data
@@ -321,10 +275,6 @@ class FrozenDawg:
                 byteorder='big')
         fnode = FrozenDawgNode(self, bnode)
         return fnode
-
-    def inc_count(self, node):
-        if node.final:
-            self.current_count += 1
 
     def lookup(self, word):
         node = self.root

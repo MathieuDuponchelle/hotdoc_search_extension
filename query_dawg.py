@@ -1,7 +1,7 @@
 import sys
 
 from dawg import FrozenDawg
-from souper import filtered_frozen_lookup
+from create_index import filtered_frozen_lookup
 
 FrozenDawg.filtered_lookup = filtered_frozen_lookup
 
