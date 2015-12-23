@@ -8,13 +8,9 @@ import json, re
 
 
 class DawgNode:
-    NextId = 0
-
     def __init__(self):
-        self.id = DawgNode.NextId
         self.bft_id = 0
         self.bft_last = False
-        DawgNode.NextId += 1
         self.final = False
         self.edges = {}
 
@@ -27,7 +23,7 @@ class DawgNode:
 
         for (label, node) in self.edges.items():
             arr.append(label)
-            arr.append(str(node.id))
+            arr.append(str(id(node)))
 
         return "_".join(arr)
 
@@ -100,11 +96,9 @@ class Dawg:
         node = self.root
         for letter in word:
             if letter not in node.edges:
-                return None
+                return False
             for label, child in sorted(node.edges.items()):
                 if label == letter:
-                    if node.final:
-                        skipped += 1
                     node = child
                     break
 
@@ -178,7 +172,7 @@ class Dawg:
             vertex = path[-1]
 
             # We check if the current node is already in the visited nodes set in order not to recheck it
-            if vertex.id not in visited:
+            if id(vertex) not in visited:
                 # enumerate all adjacent nodes, construct a new path and push it into the queue
                 i = 0
                 cnodes = sorted(vertex.edges.items())
@@ -195,7 +189,7 @@ class Dawg:
                     queue.append(new_path)
 
                 # Mark the vertex as visited
-                visited.add(vertex.id)
+                visited.add(id(vertex))
 
     def generate_bft_id(self):
         x = 0
@@ -297,10 +291,7 @@ if __name__ == '__main__':
     dawg = Dawg()
     WordCount = 0
 
-    DICT = 'citypity.txt'
     DICT = 'somewords.txt'
-    DICT = 'others.txt'
-    DICT = '/usr/share/dict/words'
 
     with open(DICT, 'r') as f:
         words = [w.lower() for w in f.read().split()]
@@ -323,11 +314,14 @@ if __name__ == '__main__':
     with open('dumped.dawg', 'rb') as f:
         data = f.read()
 
-    print (dawg.edgeCount(), dawg.nodeCount())
-    print (dawg.lookup('abaff'))
-
     fdawg = FrozenDawg(data)
-    from datetime import datetime
-    n = datetime.now()
-    skipped = fdawg.lookup('jabberment')
-    print (skipped, dawg.data[skipped])
+
+    # True
+    print (dawg.lookup('abaff'))
+    # True
+    print (fdawg.lookup('abaff'))
+
+    # False
+    print (dawg.lookup('completenonsense'))
+    # False
+    print (fdawg.lookup('completenonsense'))
