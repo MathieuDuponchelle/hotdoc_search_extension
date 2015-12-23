@@ -80,7 +80,6 @@ class Dawg:
             raise Exception("Error: Words must be inserted in alphabetical " +
                             "order.")
 
-        print ("inserting", word)
         # find common prefix between word and previous word
         commonPrefix = 0
         for i in range(min(len(word), len(self.previousWord))):

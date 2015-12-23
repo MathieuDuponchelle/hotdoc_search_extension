@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from bs4 import BeautifulSoup
 from collections import defaultdict
 import sys, codecs
@@ -44,39 +46,23 @@ def parse_file(filename):
             search_index[filtered].add(anchor_id.strip())
 
 def filtered_frozen_lookup(self, word):
-    print ("looking for word", word)
-    from datetime import datetime
-    n = datetime.now()
     word = word.replace('.', '}')
     word = word.replace('_', '|')
     res = self.lookup(word)
-    print ("lookup takes", datetime.now() - n)
     return res
 
 if __name__=='__main__':
     for root, dirs, files in os.walk(sys.argv[1]):
         for file in files:
             if file.endswith(".html"):
-                print(os.path.join(root, file)) 
+                print("parsing", os.path.join(root, file)) 
                 parse_file(os.path.join(root, file))
 
-    from datetime import datetime
-
-    n = datetime.now()
     dawg = Dawg()
     for key in sorted(search_index):
         dawg.insert(key, ''.join(reversed(key)))
     dawg.finish()
 
-    print ("insertion takes", datetime.now() - n)
-    n = datetime.now()
     dawg.dump()
-    print ("dumping takes", datetime.now() - n)
 
-    with open('dumped.dawg', 'rb') as f:
-        data = f.read()
-
-    FrozenDawg.filtered_lookup = filtered_frozen_lookup
-    fdawg = FrozenDawg(data)
-    skipped = fdawg.filtered_lookup('test.bar_ze_bar')
-    print (skipped, dawg.data[skipped])
+    print ("Done, dawg dumped in dumped.dawg!")
