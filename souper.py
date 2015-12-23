@@ -2,11 +2,11 @@ from bs4 import BeautifulSoup
 from collections import defaultdict
 import sys, codecs
 import os
+from dawg import Dawg, FrozenDawg
 
 search_index = defaultdict(set)
 with open(os.path.join(os.path.dirname(__file__), 'stopwords.txt'), 'r') as f:
     stop_words = set(f.read().split())
-    print stop_words
 
 def filter_char(char):
     return ord('a') <= ord(char) <= ord('z') or char == '.' or char == '_'
@@ -39,7 +39,15 @@ def parse_file(filename):
             filtered = token_filter(token)
             if filtered is None:
                 continue
-            search_index[token].add(anchor_id.strip())
+            filtered = filtered.replace('.', '}')
+            filtered = filtered.replace('_', '|')
+            search_index[filtered].add(anchor_id.strip())
+
+def filtered_frozen_lookup(self, word):
+    word = word.replace('.', '}')
+    word = word.replace('_', '|')
+    print ("looking for word", word)
+    return fdawg.lookup(word)
 
 if __name__=='__main__':
     for root, dirs, files in os.walk(sys.argv[1]):
@@ -47,10 +55,24 @@ if __name__=='__main__':
             if file.endswith(".html"):
                 print(os.path.join(root, file)) 
                 parse_file(os.path.join(root, file))
-                
-    with codecs.open('search_index.txt', 'w', 'utf-8') as f:
-        for key, value in search_index.items():
-            f.write (key)
-            for elem in value:
-                f.write(' ' + elem)
-            f.write('\n')
+
+    from datetime import datetime
+
+    n = datetime.now()
+    dawg = Dawg()
+    for key in sorted(search_index):
+        dawg.insert(key, ''.join(reversed(key)))
+    dawg.finish()
+
+    print ("insertion takes", datetime.now() - n)
+    n = datetime.now()
+    dawg.dump()
+    print ("dumping takes", datetime.now() - n)
+
+    with open('dumped.dawg', 'rb') as f:
+        data = f.read()
+
+    FrozenDawg.filtered_lookup = filtered_frozen_lookup
+    fdawg = FrozenDawg(data)
+    skipped = fdawg.filtered_lookup('test.bar_ze_bar')
+    print (skipped, dawg.data[skipped])
