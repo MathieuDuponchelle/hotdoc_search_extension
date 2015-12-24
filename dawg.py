@@ -121,46 +121,34 @@ class Dawg:
                 self.searchRecursive(node.edges[letter], letter, word, currentRow,
                                      results, maxCost, currentWord + letter)
 
-    def bft(self, node, function):
+    def unroll(self, node):
+        unrolled = []
         node.letter = None
-        visited = set()
         queue = [[node]]
+        bft_id = 0
 
         while queue:
-            # Gets the first path in the queue
             path = queue.pop(0)
-
-            # Gets the last node in the path
             vertex = path[-1]
+            i = 0
+            cnodes = sorted(vertex.edges.items())
+            l = len(cnodes)
+            for letter, node in cnodes:
+                i += 1
+                bft_id += 1
 
-            # We check if the current node is already in the visited nodes set in order not to recheck it
-            if id(vertex) not in visited:
-                # enumerate all adjacent nodes, construct a new path and push it into the queue
-                i = 0
-                cnodes = sorted(vertex.edges.items())
-                l = len(cnodes)
-                for letter, node in cnodes:
-                    i += 1
-                    node.bft_last = False
-                    if i == l:
-                        node.bft_last = True
-                    new_path = list(path)
-                    new_path.append(node)
-                    node.letter = letter
-                    function(node)
-                    queue.append(new_path)
+                node.bft_id = bft_id
+                node.bft_last = False
+                if i == l:
+                    node.bft_last = True
 
-                # Mark the vertex as visited
-                visited.add(id(vertex))
+                new_path = list(path)
+                new_path.append(node)
+                node.letter = letter
+                unrolled.append(node)
+                queue.append(new_path)
 
-    def generate_bft_id(self):
-        x = 0
-        while True:
-            x += 1
-            yield x
-
-    def apply_id(self, node):
-        node.bft_id = next(self.id_generator)
+        return unrolled
 
     def dump_node(self, node):
         first_child_id = 0
@@ -180,9 +168,9 @@ class Dawg:
             res |= (1 << 6)
             res |= 29
             self.dump_file.write(res.to_bytes(4, byteorder='big', signed=False))
-            self.id_generator = self.generate_bft_id()
-            self.bft(self.root, self.apply_id)
-            self.bft(self.root, self.dump_node)
+            unrolled = self.unroll(self.root)
+            for node in unrolled:
+                self.dump_node(node)
 
     def clamp_letter(self, letter):
         return (ord(letter) - ord('a'))
