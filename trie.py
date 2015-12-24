@@ -8,15 +8,15 @@ BFT_LAST_MASK = 1 << 6
 def clamp_letter(letter):
     return (ord(letter) - ord('a'))
 
-class DawgNode:
-    def __init__(self, dawg, letter):
+class TrieNode:
+    def __init__(self, trie, letter):
         self.bft_id = 0
         self.first_child_id = 0
         self.bft_last = False
         self.final = False
         self._edges = {}
         self.letter = letter
-        self._dawg = dawg
+        self._trie = trie
 
     @property
     def edges(self):
@@ -28,7 +28,7 @@ class DawgNode:
         next_id = self.first_child_id
 
         while next_id:
-            edge = self._dawg.get_node_by_index(next_id)
+            edge = self._trie.get_node_by_index(next_id)
             if edge.bft_last:
                 next_id = 0
             else:
@@ -38,10 +38,10 @@ class DawgNode:
         return self._edges
 
     @classmethod
-    def from_binary(cls, dawg, bdata):
+    def from_binary(cls, trie, bdata):
         letter = chr(ord('a') + (bdata & LETTER_MASK))
 
-        res = cls(dawg, letter)
+        res = cls(trie, letter)
 
         res.final = bool(bdata & FINAL_MASK)
         res.bft_last = bool(bdata & BFT_LAST_MASK)
@@ -49,10 +49,10 @@ class DawgNode:
         res._edges = None
         return res
 
-class Dawg:
+class Trie:
     def __init__(self):
         self._previous_word = ""
-        self._root = DawgNode(self, chr(127))
+        self._root = TrieNode(self, chr(127))
         self._binary_data = None
 
         self.frozen = False
@@ -89,7 +89,7 @@ class Dawg:
             common_prefix += 1
 
         for letter in word[common_prefix:]:
-            nextNode = DawgNode(self, letter)
+            nextNode = TrieNode(self, letter)
             node.edges[letter] = nextNode
             node = nextNode
 
@@ -163,7 +163,7 @@ class Dawg:
         bnode = int.from_bytes(self._binary_data[index * 4:index * 4 + 4],
                 byteorder='big')
 
-        return DawgNode.from_binary(self, bnode)
+        return TrieNode.from_binary(self, bnode)
 
     def to_file(self, filename):
         with open (filename, 'wb') as dump_file:
@@ -218,7 +218,7 @@ class Dawg:
 
 if __name__ == '__main__':
     import sys, re
-    dawg = Dawg()
+    trie = Trie()
     word_count = 0
 
     DICT = 'somewords.txt'
@@ -234,36 +234,36 @@ if __name__ == '__main__':
         word_count += 1
         # insert all words, using the reversed version as the data associated with
         # it
-        dawg.insert(word)
+        trie.insert(word)
         if (word_count % 100) == 0:
             sys.stderr.write("{0}\r".format(word_count))
 
-    dawg.to_file('dumped.dawg')
+    trie.to_file('dumped.trie')
 
     try:
-        dawg.get_node_by_index(0)
+        trie.get_node_by_index(0)
         print ("Error: shouldn't be possible to get node by index in a "
                "non-frozen trie")
         sys.exit(-1)
     except AssertionError:
         pass
 
-    fdawg = Dawg.from_file('dumped.dawg')
+    ftrie = Trie.from_file('dumped.trie')
 
     # Can't insert in frozen trie
     try:
-        fdawg.insert("palapalapa")
+        ftrie.insert("palapalapa")
         print ("Error: shouldn't be possible to insert in frozen trie")
         sys.exit(-1)
     except AssertionError:
         pass
 
     # True
-    print (dawg.lookup('abaff'))
+    print (trie.lookup('abaff'))
     # True
-    print (fdawg.lookup('abaff'))
+    print (ftrie.lookup('abaff'))
 
     # False
-    print (dawg.lookup('completenonsense'))
+    print (trie.lookup('completenonsense'))
     # False
-    print (fdawg.lookup('completenonsense'))
+    print (ftrie.lookup('completenonsense'))

@@ -1,6 +1,6 @@
 import sys
 
-from dawg import Dawg
+from trie import Trie
 
 def lookup_transformed(self, word):
     word = word.replace('.', '}')
@@ -8,7 +8,7 @@ def lookup_transformed(self, word):
     res = self.lookup(word)
     return res
 
-Dawg.lookup_transformed = lookup_transformed
+Trie.lookup_transformed = lookup_transformed
 
-fdawg = Dawg.from_file('dumped.dawg')
-print(fdawg.lookup_transformed(sys.argv[1]))
+ftrie = Trie.from_file('dumped.trie')
+print(ftrie.lookup_transformed(sys.argv[1]))

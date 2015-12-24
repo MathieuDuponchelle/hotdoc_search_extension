@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from collections import defaultdict
 import sys, codecs
 import os
-from dawg import Dawg
+from trie import Trie
 
 search_index = defaultdict(set)
 with open(os.path.join(os.path.dirname(__file__), 'stopwords.txt'), 'r') as f:
@@ -52,11 +52,11 @@ if __name__=='__main__':
                 print("parsing", os.path.join(root, file)) 
                 parse_file(os.path.join(root, file))
 
-    dawg = Dawg()
+    trie = Trie()
     for key in sorted(search_index):
-        dawg.insert(key)
+        trie.insert(key)
 
     print ("dumping")
-    dawg.to_file('dumped.dawg')
+    trie.to_file('dumped.trie')
 
-    print ("Done, dawg dumped in dumped.dawg!")
+    print ("Done, trie dumped in dumped.trie!")
