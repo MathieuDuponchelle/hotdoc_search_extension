@@ -1,26 +1,76 @@
-# This class represents a node in the directed acyclic word graph (DAWG). It
-# has a list of edges to other nodes. It has functions for testing whether it
-# is equivalent to another node. Nodes are equivalent if they have identical
-# edges, and each identical edge leads to identical states. The __hash__ and
-# __eq__ functions allow it to be used as a key in a python dictionary.
+# This class represents a node in the trie. It
+# has a list of edges to other nodes.
 
+LETTER_MASK = 0x1F
+FINAL_MASK = 1 << 5
+BFT_LAST_MASK = 1 << 6
 
 def clamp_letter(letter):
     return (ord(letter) - ord('a'))
 
 class DawgNode:
-    def __init__(self):
+    def __init__(self, dawg, letter):
         self.bft_id = 0
+        self.first_child_id = 0
         self.bft_last = False
         self.final = False
-        self.edges = {}
+        self._edges = {}
+        self.letter = letter
+        self._dawg = dawg
+
+    @property
+    def edges(self):
+        if self._edges is not None:
+            return self._edges
+
+        self._edges = {}
+
+        next_id = self.first_child_id
+
+        while next_id:
+            edge = self._dawg.get_node_by_index(next_id)
+            if edge.bft_last:
+                next_id = 0
+            else:
+                next_id += 1
+            self._edges[edge.letter] = edge
+
+        return self._edges
+
+    @classmethod
+    def from_binary(cls, dawg, bdata):
+        letter = chr(ord('a') + (bdata & LETTER_MASK))
+
+        res = cls(dawg, letter)
+
+        res.final = bool(bdata & FINAL_MASK)
+        res.bft_last = bool(bdata & BFT_LAST_MASK)
+        res.first_child_id = int(bdata >> 7)
+        res._edges = None
+        return res
 
 class Dawg:
     def __init__(self):
         self._previous_word = ""
-        self._root = DawgNode()
+        self._root = DawgNode(self, chr(127))
+        self._binary_data = None
 
-    def insert(self, word, data):
+        self.frozen = False
+
+    @classmethod
+    def from_file(cls, filename):
+        res = cls()
+
+        with open(filename, 'rb') as f:
+            res._binary_data = f.read()
+
+        res.frozen = True
+        res._root = res.get_node_by_index(0)
+        return res
+
+    def insert(self, word):
+        assert(not self.frozen)
+
         if word == self._previous_word:
             return
 
@@ -39,7 +89,7 @@ class Dawg:
             common_prefix += 1
 
         for letter in word[common_prefix:]:
-            nextNode = DawgNode()
+            nextNode = DawgNode(self, letter)
             node.edges[letter] = nextNode
             node = nextNode
 
@@ -49,9 +99,10 @@ class Dawg:
     def lookup(self, word):
         node = self._root
         for letter in word:
-            if letter not in node.edges:
+            edges = node.edges
+            if letter not in edges:
                 return False
-            for label, child in sorted(node.edges.items()):
+            for label, child in sorted(edges.items()):
                 if label == letter:
                     node = child
                     break
@@ -59,52 +110,72 @@ class Dawg:
         if node.final:
             return True
 
-    def search(self, word, maxCost):
+        return False
+
+    def search(self, word, max_cost):
         # build first row
-        currentRow = range(len(word) + 1)
+        current_row = range(len(word) + 1)
 
         results = []
 
         # recursively search each branch of the trie
         for letter in self._root.edges:
-            self.searchRecursive(self._root.edges[letter], letter, word, currentRow,
-                                 results, maxCost, letter)
+            self._search_recursive(self._root.edges[letter], letter, word, current_row,
+                                 results, max_cost, letter)
 
         return results
 
     # This recursive helper is used by the search function above. It assumes that
-    # the previousRow has been filled in already.
-    def searchRecursive(self, node, letter, word, previousRow, results, maxCost,
+    # the previous_row has been filled in already.
+    def _search_recursive(self, node, letter, word, previous_row, results, max_cost,
                         currentWord):
         columns = len(word) + 1
-        currentRow = [previousRow[0] + 1]
+        current_row = [previous_row[0] + 1]
 
         # Build one row for the letter, with a column for each letter in the target
         # word, plus one for the empty string at column 0
         for column in range(1, columns):
-            insertCost = currentRow[column - 1] + 1
-            deleteCost = previousRow[column] + 1
+            insertCost = current_row[column - 1] + 1
+            deleteCost = previous_row[column] + 1
 
             if word[column - 1] != letter:
-                replaceCost = previousRow[column - 1] + 1
+                replaceCost = previous_row[column - 1] + 1
             else:
-                replaceCost = previousRow[column - 1]
+                replaceCost = previous_row[column - 1]
 
-            currentRow.append(min(insertCost, deleteCost, replaceCost))
+            current_row.append(min(insertCost, deleteCost, replaceCost))
 
         # if the last entry in the row indicates the optimal cost is less than the
         # maximum cost, and there is a word in this trie node, then add it.
-        if currentRow[-1] <= maxCost and node.final:
-            results.append((currentWord, currentRow[-1]))
+        if current_row[-1] <= max_cost and node.final:
+            results.append((currentWord, current_row[-1]))
 
         # if any entries in the row are less than the maximum cost, then
         # recursively search each branch of the trie
-        if min(currentRow) <= maxCost:
+        if min(current_row) <= max_cost:
             for letter in node.edges:
-                self.searchRecursive(node.edges[letter], letter, word, currentRow,
-                                     results, maxCost, currentWord + letter)
+                self._search_recursive(node.edges[letter], letter, word, current_row,
+                                     results, max_cost, currentWord + letter)
 
-    def unroll(self, node):
+    def get_node_by_index(self, index):
+        assert(self.frozen)
+
+        bnode = int.from_bytes(self._binary_data[index * 4:index * 4 + 4],
+                byteorder='big')
+
+        return DawgNode.from_binary(self, bnode)
+
+    def to_file(self, filename):
+        with open (filename, 'wb') as dump_file:
+            res = int(1) << 7
+            res |= (1 << 6)
+            res |= 30
+            dump_file.write(res.to_bytes(4, byteorder='big', signed=False))
+            unrolled = self._unroll(self._root)
+            for node in unrolled:
+                self._dump_node(node, dump_file)
+
+    def _unroll(self, node):
         unrolled = []
         node.letter = None
         queue = [[node]]
@@ -127,13 +198,12 @@ class Dawg:
 
                 new_path = list(path)
                 new_path.append(node)
-                node.letter = letter
                 unrolled.append(node)
                 queue.append(new_path)
 
         return unrolled
 
-    def dump_node(self, node):
+    def _dump_node(self, node, dump_file):
         first_child_id = 0
         if node.edges:
             first_child_id = sorted(node.edges.items())[0][1].bft_id
@@ -143,83 +213,13 @@ class Dawg:
         if node.final:
             res |= (1 << 5)
         res |= clamp_letter(node.letter)
-        self.dump_file.write(res.to_bytes(4, byteorder='big', signed=False))
+        dump_file.write(res.to_bytes(4, byteorder='big', signed=False))
 
-    def dump(self):
-        with open ("dumped.dawg", 'wb') as self.dump_file:
-            res = int(1) << 7
-            res |= (1 << 6)
-            res |= 29
-            self.dump_file.write(res.to_bytes(4, byteorder='big', signed=False))
-            unrolled = self.unroll(self._root)
-            for node in unrolled:
-                self.dump_node(node)
-
-LETTER_MASK = 0x1F
-FINAL_MASK = 1 << 5
-BFT_LAST_MASK = 1 << 6
-
-class FrozenDawgNode:
-    def __init__(self, dawg, bnode):
-        self.letter = chr(ord('a') + (bnode & LETTER_MASK))
-        self.final = bool(bnode & FINAL_MASK)
-        self.bft_last = bool(bnode & BFT_LAST_MASK)
-        self.first_child_id = int(bnode >> 7)
-        self.dawg = dawg
-        self.edges = None
-
-    def get_edges(self):
-        if self.edges is not None:
-            return self.edges
-
-        edges = {}
-        next_id = self.first_child_id
-        while next_id:
-            edge = self.dawg.get_node_by_index(next_id)
-            if edge.bft_last:
-                next_id = 0
-            else:
-                next_id += 1
-            edges[edge.letter] = edge
-
-        self.edges = edges
-        return edges
-
-    def __repr__(self):
-        return ' '.join([str(self.first_child_id), str(self.bft_last),
-            str(self.final), str(self.letter)])
-
-class FrozenDawg:
-    def __init__(self, data):
-        self.data = data
-        self.root = self.get_node_by_index(0) 
-
-    def get_node_by_index(self, index):
-        bnode = int.from_bytes(self.data[index * 4:index * 4 + 4],
-                byteorder='big')
-        fnode = FrozenDawgNode(self, bnode)
-        return fnode
-
-    def lookup(self, word):
-        node = self.root
-        for letter in word:
-            edges = node.get_edges()
-            if letter not in edges:
-                return False
-            for label, child in sorted(edges.items()):
-                if label == letter:
-                    node = child
-                    break
-
-        if node.final:
-            return True
-
-        return False
 
 if __name__ == '__main__':
     import sys, re
     dawg = Dawg()
-    WordCount = 0
+    word_count = 0
 
     DICT = 'somewords.txt'
 
@@ -231,19 +231,32 @@ if __name__ == '__main__':
         if not re.match(r'^[a-z]+$', word):
             continue
 
-        WordCount += 1
+        word_count += 1
         # insert all words, using the reversed version as the data associated with
         # it
-        dawg.insert(word, ''.join(reversed(word)))
-        if (WordCount % 100) == 0:
-            sys.stderr.write("{0}\r".format(WordCount))
+        dawg.insert(word)
+        if (word_count % 100) == 0:
+            sys.stderr.write("{0}\r".format(word_count))
 
-    dawg.dump()
+    dawg.to_file('dumped.dawg')
 
-    with open('dumped.dawg', 'rb') as f:
-        data = f.read()
+    try:
+        dawg.get_node_by_index(0)
+        print ("Error: shouldn't be possible to get node by index in a "
+               "non-frozen trie")
+        sys.exit(-1)
+    except AssertionError:
+        pass
 
-    fdawg = FrozenDawg(data)
+    fdawg = Dawg.from_file('dumped.dawg')
+
+    # Can't insert in frozen trie
+    try:
+        fdawg.insert("palapalapa")
+        print ("Error: shouldn't be possible to insert in frozen trie")
+        sys.exit(-1)
+    except AssertionError:
+        pass
 
     # True
     print (dawg.lookup('abaff'))

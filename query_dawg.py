@@ -1,12 +1,14 @@
 import sys
 
-from dawg import FrozenDawg
-from create_index import filtered_frozen_lookup
+from dawg import Dawg
 
-FrozenDawg.filtered_lookup = filtered_frozen_lookup
+def lookup_transformed(self, word):
+    word = word.replace('.', '}')
+    word = word.replace('_', '|')
+    res = self.lookup(word)
+    return res
 
-with open('dumped.dawg', 'rb') as f:
-    data = f.read()
+Dawg.lookup_transformed = lookup_transformed
 
-fdawg = FrozenDawg(data)
-print(fdawg.filtered_lookup(sys.argv[1]))
+fdawg = Dawg.from_file('dumped.dawg')
+print(fdawg.lookup_transformed(sys.argv[1]))

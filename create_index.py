@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from collections import defaultdict
 import sys, codecs
 import os
-from dawg import Dawg, FrozenDawg
+from dawg import Dawg
 
 search_index = defaultdict(set)
 with open(os.path.join(os.path.dirname(__file__), 'stopwords.txt'), 'r') as f:
@@ -45,12 +45,6 @@ def parse_file(filename):
             filtered = filtered.replace('_', '|')
             search_index[filtered].add(anchor_id.strip())
 
-def filtered_frozen_lookup(self, word):
-    word = word.replace('.', '}')
-    word = word.replace('_', '|')
-    res = self.lookup(word)
-    return res
-
 if __name__=='__main__':
     for root, dirs, files in os.walk(sys.argv[1]):
         for file in files:
@@ -60,9 +54,9 @@ if __name__=='__main__':
 
     dawg = Dawg()
     for key in sorted(search_index):
-        dawg.insert(key, ''.join(reversed(key)))
+        dawg.insert(key)
 
     print ("dumping")
-    dawg.dump()
+    dawg.to_file('dumped.dawg')
 
     print ("Done, dawg dumped in dumped.dawg!")
