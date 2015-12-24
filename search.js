@@ -1,5 +1,5 @@
 var req = new XMLHttpRequest();
-req.open("GET", "big.trie", true);
+req.open("GET", "dumped.trie", true);
 req.overrideMimeType('text\/plain; charset=x-user-defined');
 
 var trie = undefined;
@@ -27,17 +27,20 @@ document.getElementById("lookup").onkeyup=function () {
 	var new_html = '';
 	var results = [];
 
-	if (this.value.length == 0) {
+	var query = this.value.replace(/\./g, '}');
+	query = query.replace(/_/g, '|');
+
+	if (query.length == 0) {
 		result_area.innerHTML = new_html;
 		return;
 	}
 
 	console.time('lookup');
 
-	var node = trie.lookup_node (this.value);
+	var node = trie.lookup_node (query);
 
 	if (node != null && node.is_final) {
-		results.push (this.value);
+		results.push (query);
 		new_html += '<p>Found exact match</p>';
 	} else if (node != null) {
 		var completions = trie.lookup_completions(node, 5);
@@ -46,7 +49,7 @@ document.getElementById("lookup").onkeyup=function () {
 		}
 		new_html += '<p>Found some completions</p>';
 	} else {
-		corrections = trie.search(this.value, 2);
+		corrections = trie.search(query, 2);
 		var sorted_keys = getSortedKeys(corrections);
 
 		if (sorted_keys.length) {
@@ -66,7 +69,11 @@ document.getElementById("lookup").onkeyup=function () {
 	new_html += '<ul>';
 
 	for (idx in results) {
-		new_html += '<li>' + results[idx] + '</li>'
+		var result = results[idx];
+
+		result = result.replace(/\|/g, '_');
+		result = result.replace(/}/g, '.');
+		new_html += '<li>' + result + '</li>'
 	}
 
 	new_html += '</ul>';
