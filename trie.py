@@ -102,10 +102,7 @@ class Trie:
             edges = node.edges
             if letter not in edges:
                 return False
-            for label, child in sorted(edges.items()):
-                if label == letter:
-                    node = child
-                    break
+            node = edges[letter]
 
         if node.final:
             return True
