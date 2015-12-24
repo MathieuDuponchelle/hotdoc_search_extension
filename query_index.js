@@ -97,7 +97,7 @@ Trie.prototype.lookup_node = function (word) {
 	}
 
 	return node;
-}
+};
 
 Trie.prototype.exists = function (word) {
 	var node = this.lookup_node(word);
@@ -123,7 +123,6 @@ Trie.prototype.lookup_completions = function (start_node, max_completions) {
 			}
 
 			if (completions.length === max_completions) {
-				console.log('found enough completions');
 				queue = [];
 				break;
 			}
@@ -135,4 +134,72 @@ Trie.prototype.lookup_completions = function (start_node, max_completions) {
 	}
 
 	return completions;
+};
+
+function my_range (arg_one, arg_two) {
+	var res = new Array();
+	var start = 0;
+	var end = arg_one;
+
+	if (arg_two != undefined) {
+		start = arg_one;
+		end = arg_two;
+	}
+
+	var i = start;
+
+	while (i < end) {
+		res.push(i);
+		i += 1;
+	}
+
+	return res;
 }
+
+Trie.prototype.search_recursive = function (node, letter, word, previous_row, results,
+		max_cost) {
+	var columns = word.length + 1;
+	var current_row = [previous_row[0] + 1];
+
+	var column = 1;
+	while (column < columns) {
+		var insert_cost = current_row[column - 1] + 1;
+		var delete_cost = previous_row[column] + 1;
+
+		var replace_cost;
+		if (word[column - 1] != letter) {
+			replace_cost = previous_row[column - 1] + 1;
+		} else {
+			replace_cost = previous_row[column - 1];
+		}
+
+		current_row.push(Math.min(insert_cost, delete_cost, replace_cost));
+
+		column += 1;
+	}
+
+	if (current_row[current_row.length - 1] <= max_cost && node.is_final) {
+		results[node.get_word()] = current_row[current_row.length - 1];
+	}
+
+	if (Math.min.apply(null, current_row) <= max_cost) {
+		var edges = node.get_edges();
+		for (var letter in edges) {
+			this.search_recursive(edges[letter], letter, word, current_row,
+					results, max_cost);
+		}
+	}
+};
+
+Trie.prototype.search = function (word, max_cost) {
+	var corrections = {};
+	var current_row = my_range(word.length + 1);
+	var edges = this.root.get_edges();
+
+	for (var letter in edges) {
+		this.search_recursive(edges[letter], letter, word, current_row,
+				corrections, max_cost);
+	}
+
+	return corrections;
+};

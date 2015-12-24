@@ -1,5 +1,5 @@
 var req = new XMLHttpRequest();
-req.open("GET", "dumped.trie", true);
+req.open("GET", "big.trie", true);
 req.overrideMimeType('text\/plain; charset=x-user-defined');
 
 var trie = undefined;
@@ -13,15 +13,24 @@ req.onload = function (event) {
 
 req.send(null);
 
+function getSortedKeys(obj) {
+    var keys = []; for(var key in obj) keys.push(key);
+    return keys.sort(function(a,b){return obj[a]-obj[b]});
+}
+
 document.getElementById("lookup").onkeyup=function () {
 	if (trie === undefined) {
 		return;
 	}
 
-	var new_html = '<p>Results</p>';
-	new_html += '<ul>';
+	var result_area = document.getElementById('result_area');
+	var new_html = '';
+	var results = [];
 
-	results = [];
+	if (this.value.length == 0) {
+		result_area.innerHTML = new_html;
+		return;
+	}
 
 	console.time('lookup');
 
@@ -29,21 +38,38 @@ document.getElementById("lookup").onkeyup=function () {
 
 	if (node != null && node.is_final) {
 		results.push (this.value);
+		new_html += '<p>Found exact match</p>';
 	} else if (node != null) {
 		var completions = trie.lookup_completions(node, 5);
 		for (idx in completions) {
 			results.push(completions[idx].get_word());
 		}
+		new_html += '<p>Found some completions</p>';
+	} else {
+		corrections = trie.search(this.value, 2);
+		var sorted_keys = getSortedKeys(corrections);
+
+		if (sorted_keys.length) {
+			new_html += '<p>Did you mean ?</p>';
+		} else {
+			new_html += '<p>Nothing relevant found</p>';
+		}
+
+		for (idx in sorted_keys) {
+			var word = sorted_keys[idx];
+			results.push(word);
+		}
 	}
+
 	console.timeEnd('lookup');
 
+	new_html += '<ul>';
+
 	for (idx in results) {
-		console.log(results[idx]);
 		new_html += '<li>' + results[idx] + '</li>'
 	}
 
 	new_html += '</ul>';
 
-	var result_area = document.getElementById('result_area');
 	result_area.innerHTML = new_html;
 };
