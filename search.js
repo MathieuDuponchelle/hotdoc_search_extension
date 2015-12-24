@@ -2,7 +2,13 @@ var req = new XMLHttpRequest();
 req.open("GET", "dumped.trie", true);
 req.overrideMimeType('text\/plain; charset=x-user-defined');
 
+function dirname(path) {
+	return path.replace(/\\/g, '/')
+		.replace(/\/[^\/]*\/?$/, '');
+}
+
 var trie = undefined;
+var here = dirname(window.location.href);
 
 req.onload = function (event) {
 	data = req.responseText;
@@ -14,8 +20,8 @@ req.onload = function (event) {
 req.send(null);
 
 function getSortedKeys(obj) {
-    var keys = []; for(var key in obj) keys.push(key);
-    return keys.sort(function(a,b){return obj[a]-obj[b]});
+	var keys = []; for(var key in obj) keys.push(key);
+	return keys.sort(function(a,b){return obj[a]-obj[b]});
 }
 
 document.getElementById("lookup").onkeyup=function () {
@@ -73,10 +79,10 @@ document.getElementById("lookup").onkeyup=function () {
 
 		result = result.replace(/\|/g, '_');
 		result = result.replace(/}/g, '.');
-		new_html += '<li>' + result + '</li>'
-	}
+	new_html += '<li>' + result + '</li>'
+}
 
-	new_html += '</ul>';
+new_html += '</ul>';
 
-	result_area.innerHTML = new_html;
+result_area.innerHTML = new_html;
 };
