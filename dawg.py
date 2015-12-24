@@ -5,6 +5,9 @@
 # __eq__ functions allow it to be used as a key in a python dictionary.
 
 
+def clamp_letter(letter):
+    return (ord(letter) - ord('a'))
+
 class DawgNode:
     def __init__(self):
         self.bft_id = 0
@@ -12,45 +15,25 @@ class DawgNode:
         self.final = False
         self.edges = {}
 
-    def __str__(self):
-        arr = []
-        if self.final:
-            arr.append("1")
-        else:
-            arr.append("0")
-
-        for (label, node) in self.edges.items():
-            arr.append(label)
-            arr.append(str(id(node)))
-
-        return "_".join(arr)
-
-    def __hash__(self):
-        return self.__str__().__hash__()
-
-    def __eq__(self, other):
-        return self.__str__() == other.__str__()
-
 class Dawg:
-
     def __init__(self):
-        self.previous_word = ""
-        self.root = DawgNode()
+        self._previous_word = ""
+        self._root = DawgNode()
 
     def insert(self, word, data):
-        if word == self.previous_word:
+        if word == self._previous_word:
             return
 
-        elif word < self.previous_word:
+        elif word < self._previous_word:
             raise Exception("Error: Words must be inserted in alphabetical " +
                             "order.")
 
         # find common prefix between word and previous word
         common_prefix = 0
-        node = self.root
-        for i in range(min(len(word), len(self.previous_word))):
+        node = self._root
+        for i in range(min(len(word), len(self._previous_word))):
             letter = word[i]
-            if letter != self.previous_word[i]:
+            if letter != self._previous_word[i]:
                 break
             node = node.edges[letter]
             common_prefix += 1
@@ -61,10 +44,10 @@ class Dawg:
             node = nextNode
 
         node.final = True
-        self.previous_word = word
+        self._previous_word = word
 
     def lookup(self, word):
-        node = self.root
+        node = self._root
         for letter in word:
             if letter not in node.edges:
                 return False
@@ -83,8 +66,8 @@ class Dawg:
         results = []
 
         # recursively search each branch of the trie
-        for letter in self.root.edges:
-            self.searchRecursive(self.root.edges[letter], letter, word, currentRow,
+        for letter in self._root.edges:
+            self.searchRecursive(self._root.edges[letter], letter, word, currentRow,
                                  results, maxCost, letter)
 
         return results
@@ -159,7 +142,7 @@ class Dawg:
             res |= (1 << 6)
         if node.final:
             res |= (1 << 5)
-        res |= self.clamp_letter(node.letter)
+        res |= clamp_letter(node.letter)
         self.dump_file.write(res.to_bytes(4, byteorder='big', signed=False))
 
     def dump(self):
@@ -168,12 +151,9 @@ class Dawg:
             res |= (1 << 6)
             res |= 29
             self.dump_file.write(res.to_bytes(4, byteorder='big', signed=False))
-            unrolled = self.unroll(self.root)
+            unrolled = self.unroll(self._root)
             for node in unrolled:
                 self.dump_node(node)
-
-    def clamp_letter(self, letter):
-        return (ord(letter) - ord('a'))
 
 LETTER_MASK = 0x1F
 FINAL_MASK = 1 << 5
