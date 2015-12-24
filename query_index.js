@@ -4,6 +4,7 @@ BFT_LAST_MASK = 1 << 6;
 
 function TrieNode(trie, data) {
 	this.edges = undefined;
+	this.genitor = null;
 	this.trie = trie;
 	this.letter = String.fromCharCode((data & LETTER_MASK) + 'a'.charCodeAt(0));
 
@@ -31,6 +32,7 @@ TrieNode.prototype.get_edges = function() {
 
 	while (next_id != 0) {
 		var edge = this.trie.get_node_by_index(next_id);
+		edge.genitor = this;
 		if (edge.bft_last) {
 			next_id = 0;
 		} else {
@@ -40,6 +42,20 @@ TrieNode.prototype.get_edges = function() {
 	}
 
 	return this.edges;
+};
+
+TrieNode.prototype.get_word = function() {
+	var ancestor = this.genitor;
+	var word_array = [this.letter];
+
+	while (ancestor != null) {
+		if (ancestor.genitor != null) {
+			word_array.push(ancestor.letter);
+		}
+		ancestor = ancestor.genitor;
+	}
+
+	return (word_array.reverse().join(''));
 };
 
 function bytes_to_uint32be(data, index) {
@@ -66,7 +82,7 @@ Trie.prototype.get_node_by_index = function(idx) {
 	return new TrieNode(this, uint32be); 
 };
 
-Trie.prototype.lookup = function (word) {
+Trie.prototype.lookup_node = function (word) {
 	node = this.root;
 
 	for (idx in word) {
@@ -76,13 +92,47 @@ Trie.prototype.lookup = function (word) {
 		if (letter in edges) {
 			node = edges[letter];
 		} else {
-			return false;
+			return null;
 		}
 	}
 
-	if (node.is_final) {
-		return true;
+	return node;
+}
+
+Trie.prototype.exists = function (word) {
+	var node = this.lookup_node(word);
+
+	return (node != null && node.is_final);
+};
+
+Trie.prototype.lookup_completions = function (start_node, max_completions) {
+	var completions = [];
+
+	var queue = [[start_node]];
+	var node = null;
+
+	while (queue.length) {
+		var path = queue.pop();
+		var vertex = path[path.length - 1];
+		var cnodes = vertex.get_edges();
+		for (letter in cnodes) {
+			node = cnodes[letter];
+
+			if (node.is_final) {
+				completions.push(node);
+			}
+
+			if (completions.length === max_completions) {
+				console.log('found enough completions');
+				queue = [];
+				break;
+			}
+
+			var new_path = path.slice();
+			new_path.push(node);
+			queue.push(new_path);
+		}
 	}
 
-	return false;
-};
+	return completions;
+}

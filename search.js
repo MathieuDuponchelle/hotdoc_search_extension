@@ -18,7 +18,32 @@ document.getElementById("lookup").onkeyup=function () {
 		return;
 	}
 
+	var new_html = '<p>Results</p>';
+	new_html += '<ul>';
+
+	results = [];
+
 	console.time('lookup');
-	console.log(this.value, trie.lookup(this.value));
+
+	var node = trie.lookup_node (this.value);
+
+	if (node != null && node.is_final) {
+		results.push (this.value);
+	} else if (node != null) {
+		var completions = trie.lookup_completions(node, 5);
+		for (idx in completions) {
+			results.push(completions[idx].get_word());
+		}
+	}
 	console.timeEnd('lookup');
+
+	for (idx in results) {
+		console.log(results[idx]);
+		new_html += '<li>' + results[idx] + '</li>'
+	}
+
+	new_html += '</ul>';
+
+	var result_area = document.getElementById('result_area');
+	result_area.innerHTML = new_html;
 };
