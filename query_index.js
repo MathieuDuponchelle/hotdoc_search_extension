@@ -42,13 +42,28 @@ TrieNode.prototype.get_edges = function() {
 	return this.edges;
 };
 
+function bytes_to_uint32be(data, index) {
+	var result = 0;
+	var i = 0;
+
+	while (i < 4) {
+		result = result << 8;
+		var val = (data[index * 4 + i].charCodeAt(0)) & 0xFF;
+		result += val;
+		i += 1;
+	}
+
+	return result;
+}
+
 function Trie(data) {
 	this.data = data;
 	this.root = this.get_node_by_index(0);
 }
 
 Trie.prototype.get_node_by_index = function(idx) {
-	return new TrieNode(this, this.data[idx]); 
+	var uint32be = 	bytes_to_uint32be(this.data, idx);
+	return new TrieNode(this, uint32be); 
 };
 
 Trie.prototype.lookup = function (word) {
@@ -71,5 +86,3 @@ Trie.prototype.lookup = function (word) {
 
 	return false;
 };
-
-module.exports = Trie;
