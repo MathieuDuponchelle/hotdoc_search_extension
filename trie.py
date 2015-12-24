@@ -218,7 +218,7 @@ if __name__ == '__main__':
     trie = Trie()
     word_count = 0
 
-    DICT = 'somewords.txt'
+    DICT = '/usr/share/dict/words'
 
     with open(DICT, 'r') as f:
         words = [w.lower() for w in f.read().split()]
@@ -259,7 +259,6 @@ if __name__ == '__main__':
     print (trie.lookup('abaff'))
     # True
     print (ftrie.lookup('abaff'))
-
     # False
     print (trie.lookup('completenonsense'))
     # False
