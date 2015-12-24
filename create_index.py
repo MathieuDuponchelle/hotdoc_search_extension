@@ -61,8 +61,8 @@ if __name__=='__main__':
     dawg = Dawg()
     for key in sorted(search_index):
         dawg.insert(key, ''.join(reversed(key)))
-    dawg.finish()
 
+    print ("dumping")
     dawg.dump()
 
     print ("Done, dawg dumped in dumped.dawg!")

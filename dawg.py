@@ -1,5 +1,3 @@
-import json, re
-
 # This class represents a node in the directed acyclic word graph (DAWG). It
 # has a list of edges to other nodes. It has functions for testing whether it
 # is equivalent to another node. Nodes are equivalent if they have identical
@@ -36,61 +34,34 @@ class DawgNode:
 class Dawg:
 
     def __init__(self):
-        self.previousWord = ""
+        self.previous_word = ""
         self.root = DawgNode()
 
-        # Here is a list of nodes that have not been checked for duplication.
-        self.uncheckedNodes = []
-
-        # Here is a list of unique nodes that have been checked for
-        # duplication.
-        self.minimizedNodes = {}
-
     def insert(self, word, data):
-        if word == self.previousWord:
+        if word == self.previous_word:
             return
 
-        elif word < self.previousWord:
+        elif word < self.previous_word:
             raise Exception("Error: Words must be inserted in alphabetical " +
                             "order.")
 
         # find common prefix between word and previous word
-        commonPrefix = 0
-        for i in range(min(len(word), len(self.previousWord))):
-            if word[i] != self.previousWord[i]:
+        common_prefix = 0
+        node = self.root
+        for i in range(min(len(word), len(self.previous_word))):
+            letter = word[i]
+            if letter != self.previous_word[i]:
                 break
-            commonPrefix += 1
+            node = node.edges[letter]
+            common_prefix += 1
 
-        # Check the uncheckedNodes for redundant nodes, proceeding from last
-        # one down to the common prefix size. Then truncate the list at that
-        # point.
-        self._minimize(commonPrefix)
-
-        # add the suffix, starting from the correct node mid-way through the
-        # graph
-        if len(self.uncheckedNodes) == 0:
-            node = self.root
-        else:
-            node = self.uncheckedNodes[-1][2]
-
-        for letter in word[commonPrefix:]:
+        for letter in word[common_prefix:]:
             nextNode = DawgNode()
             node.edges[letter] = nextNode
-            self.uncheckedNodes.append((node, letter, nextNode))
             node = nextNode
 
         node.final = True
-        self.previousWord = word
-
-    def finish(self):
-        # minimize all uncheckedNodes
-        self._minimize(0)
-
-    def _minimize(self, downTo):
-        for i in range(len(self.uncheckedNodes) - 1, downTo - 1, -1):
-            (parent, letter, child) = self.uncheckedNodes[i]
-            self.minimizedNodes[child] = child
-            self.uncheckedNodes.pop()
+        self.previous_word = word
 
     def lookup(self, word):
         node = self.root
@@ -104,15 +75,6 @@ class Dawg:
 
         if node.final:
             return True
-
-    def nodeCount(self):
-        return len(self.minimizedNodes)
-
-    def edgeCount(self):
-        count = 0
-        for node in self.minimizedNodes:
-            count += len(node.edges)
-        return count
 
     def search(self, word, maxCost):
         # build first row
@@ -287,7 +249,7 @@ class FrozenDawg:
         return False
 
 if __name__ == '__main__':
-    import sys
+    import sys, re
     dawg = Dawg()
     WordCount = 0
 
@@ -307,7 +269,6 @@ if __name__ == '__main__':
         dawg.insert(word, ''.join(reversed(word)))
         if (WordCount % 100) == 0:
             sys.stderr.write("{0}\r".format(WordCount))
-    dawg.finish()
 
     dawg.dump()
 
