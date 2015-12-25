@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
+# -*- coding: UTF-8 -*-
 
-from bs4 import BeautifulSoup
-from collections import defaultdict
-import sys, codecs
-import os, json
+import sys, os, json, re, shutil
+
 from trie import Trie
-import shutil
+from collections import defaultdict
+from lxml import etree
 
 here = os.path.dirname(__file__)
 
@@ -13,44 +13,26 @@ search_index = defaultdict(set)
 with open(os.path.join(here, 'stopwords.txt'), 'r') as f:
     stop_words = set(f.read().split())
 
-def filter_char(char):
-    return ord('a') <= ord(char) <= ord('z') or char == '.' or char == '_'
+def lxml_parse_file(root_dir, filename):
+    doc = etree.parse(filename)
+    root = doc.getroot()
+    url = os.path.relpath(filename, root_dir)
 
-def token_filter(token):
-    token = token.lower()
-    token = ''.join(i for i in token if filter_char(i))
-
-    if token in stop_words:
-        return None
-
-    token = token.strip('._')
-
-    if not token:
-        return None
-
-    return token
-
-
-def parse_file(root_dir, filename):
-    with open(filename, 'r') as f:
-        data = f.read()
-
-    soup = BeautifulSoup(data, 'lxml')
-    main_content = soup.find('div', {'class': 'col-md-8'})
-    anchors = main_content.find_all(lambda tag: tag.has_attr('id'))
+    main_content = root.find('.//div[@class="col-md-8"]')
+    anchors = main_content.findall('.//div[@id]')
     for anchor in anchors:
-        anchor_id = anchor.attrs['id']
-        all_text = ''.join(anchor.findAll(text=True))
-        tokens = all_text.split()
+        anchor_id = anchor.attrib['id']
+        anchor_url = '%s#%s' % (url, anchor_id.strip())
+        all_text = etree.tostring(anchor, method="text", encoding='unicode')
+        tokens = re.findall(r'[a-zA-Z_][a-zA-Z_\.]*[a-zA-Z_]', all_text)
         for token in tokens:
-            filtered = token_filter(token)
-            if filtered is None:
+            token = token.lower()
+            if token in stop_words:
                 continue
-            filtered = filtered.replace('.', '}')
-            filtered = filtered.replace('_', '|')
-            url = filename + '#' + anchor_id.strip()
-            url = os.path.relpath(url, root_dir)
-            search_index[filtered].add(url)
+            original = token
+            token = token.replace('.', '}')
+            token = token.replace('_', '|')
+            search_index[token].add((anchor_url, original))
 
 def prepare_output_folder(root_dir):
     searchdir = os.path.join(root_dir, 'search')
@@ -67,13 +49,15 @@ def prepare_output_folder(root_dir):
 
 if __name__=='__main__':
     root_dir = sys.argv[1]
+
+    prepare_output_folder(root_dir)
+
     for root, dirs, files in os.walk(root_dir):
         for file in files:
             if file.endswith(".html"):
                 print("parsing", os.path.join(root, file)) 
-                parse_file(root_dir, os.path.join(root, file))
+                lxml_parse_file (root_dir, os.path.join(root, file))
 
-    prepare_output_folder(root_dir)
 
     trie = Trie()
     for key, value in sorted(search_index.items()):
@@ -82,10 +66,10 @@ if __name__=='__main__':
         key = key.replace('}', '.')
         key = key.replace('|', '_')
         metadata = {'urls': list(value)}
+
         with open (os.path.join(root_dir, 'search', key), 'w') as f:
             f.write(json.dumps(metadata))
 
-    print ("dumping")
     trie.to_file(os.path.join(root_dir, 'search', 'dumped.trie'))
 
     shutil.copy(os.path.join(here, 'trie.js'),
@@ -94,4 +78,4 @@ if __name__=='__main__':
     shutil.copy(os.path.join(here, 'search.js'),
             os.path.join(root_dir, 'search', 'trie.js'))
 
-    print ("Done, trie dumped in dumped.trie!")
+    print ("Done, trie dumped!")
