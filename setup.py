@@ -11,7 +11,8 @@ setup(
     author = "Mathieu Duponchelle",
     packages = find_packages(),
     package_data = {
-        '': ['stopwords.txt', '*.js', '*.html'],
+        '': ['stopwords.txt', '*.html'],
+        'javascript': ['*.js'],
     },
 
     entry_points = {'hotdoc.extensions': 'get_extension_classes = hotdoc_search_extension.search_extension:get_extension_classes'},

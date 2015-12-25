@@ -16,7 +16,7 @@ if __name__ == '__main__':
 
     trie = Trie()
     word_count = 0
-    DICT = '/usr/share/dict/words'
+    DICT = 'hotdoc_search_extension/somewords.txt'
 
     with open(DICT, 'r') as f:
         words = [w.lower() for w in f.read().split()]

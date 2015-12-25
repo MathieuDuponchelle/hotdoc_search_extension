@@ -47,9 +47,7 @@ def prepare_output_folder(root_dir):
     except OSError:
         pass
 
-if __name__=='__main__':
-    root_dir = sys.argv[1]
-
+def create_index(root_dir):
     prepare_output_folder(root_dir)
 
     for root, dirs, files in os.walk(root_dir):
@@ -72,4 +70,7 @@ if __name__=='__main__':
 
     trie.to_file(os.path.join(root_dir, 'search', 'dumped.trie'))
 
+if __name__=='__main__':
+    root_dir = sys.argv[1]
+    create_index (root_dir)
     print ("Done, trie dumped!")

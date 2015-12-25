@@ -5,6 +5,19 @@ LETTER_MASK = 0x1F
 FINAL_MASK = 1 << 5
 BFT_LAST_MASK = 1 << 6
 
+try:
+    to_bytes = int.to_bytes
+    from_bytes = int.from_bytes
+except AttributeError:
+    def to_bytes(n, length, byteorder='big', signed=False):
+        h = '%x' % n
+        s = ('0'*(len(h) % 2) + h).zfill(length*2).decode('hex')
+        return s if byteorder == 'big' else s[::-1]
+
+    def from_bytes(data, byteorder='big'):
+        encoded = str(data).encode('hex')
+        return int(encoded, 16)
+
 def clamp_letter(letter):
     return (ord(letter) - ord('a'))
 
@@ -157,7 +170,7 @@ class Trie:
     def get_node_by_index(self, index):
         assert(self.frozen)
 
-        bnode = int.from_bytes(self._binary_data[index * 4:index * 4 + 4],
+        bnode = from_bytes(self._binary_data[index * 4:index * 4 + 4],
                 byteorder='big')
 
         return TrieNode.from_binary(self, bnode)
@@ -167,7 +180,7 @@ class Trie:
             res = int(1) << 7
             res |= (1 << 6)
             res |= 30
-            dump_file.write(res.to_bytes(4, byteorder='big', signed=False))
+            dump_file.write(to_bytes(res, 4, byteorder='big'))
             unrolled = self._unroll(self._root)
             for node in unrolled:
                 self._dump_node(node, dump_file)
@@ -210,4 +223,4 @@ class Trie:
         if node.final:
             res |= (1 << 5)
         res |= clamp_letter(node.letter)
-        dump_file.write(res.to_bytes(4, byteorder='big', signed=False))
+        dump_file.write(to_bytes(res, 4, byteorder='big'))
