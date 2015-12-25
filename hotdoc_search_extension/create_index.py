@@ -34,8 +34,8 @@ def lxml_parse_file(root_dir, filename):
             token = token.replace('_', '|')
             search_index[token].add((anchor_url, original))
 
-def prepare_output_folder(root_dir):
-    searchdir = os.path.join(root_dir, 'search')
+def prepare_output_folder(dest):
+    searchdir = os.path.join(dest, 'search')
 
     try:
         shutil.rmtree (searchdir)
@@ -47,15 +47,13 @@ def prepare_output_folder(root_dir):
     except OSError:
         pass
 
-def create_index(root_dir):
-    prepare_output_folder(root_dir)
+def create_index(root_dir, dest):
+    prepare_output_folder(dest)
 
     for root, dirs, files in os.walk(root_dir):
         for file in files:
             if file.endswith(".html"):
-                print("parsing", os.path.join(root, file)) 
                 lxml_parse_file (root_dir, os.path.join(root, file))
-
 
     trie = Trie()
     for key, value in sorted(search_index.items()):
@@ -65,10 +63,10 @@ def create_index(root_dir):
         key = key.replace('|', '_')
         metadata = {'urls': list(value)}
 
-        with open (os.path.join(root_dir, 'search', key), 'w') as f:
+        with open (os.path.join(dest, 'search', key), 'w') as f:
             f.write(json.dumps(metadata))
 
-    trie.to_file(os.path.join(root_dir, 'search', 'dumped.trie'))
+    trie.to_file(os.path.join(dest, 'search', 'dumped.trie'))
 
 if __name__=='__main__':
     root_dir = sys.argv[1]
