@@ -1,4 +1,4 @@
-import sys
+import sys, os
 
 from trie import Trie
 
@@ -10,5 +10,6 @@ def lookup_transformed(self, word):
 
 Trie.lookup_transformed = lookup_transformed
 
-ftrie = Trie.from_file('dumped.trie')
+here = os.path.dirname(__file__)
+ftrie = Trie.from_file(os.path.join(here, '../demo/dumped.trie'))
 print(ftrie.lookup_transformed(sys.argv[1]))

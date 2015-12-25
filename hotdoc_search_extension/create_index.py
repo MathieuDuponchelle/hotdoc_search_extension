@@ -72,10 +72,4 @@ if __name__=='__main__':
 
     trie.to_file(os.path.join(root_dir, 'search', 'dumped.trie'))
 
-    shutil.copy(os.path.join(here, 'trie.js'),
-            os.path.join(root_dir, 'search', 'trie.js'))
-
-    shutil.copy(os.path.join(here, 'search.js'),
-            os.path.join(root_dir, 'search', 'trie.js'))
-
     print ("Done, trie dumped!")
