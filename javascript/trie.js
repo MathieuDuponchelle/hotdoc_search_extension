@@ -85,8 +85,8 @@ Trie.prototype.get_node_by_index = function(idx) {
 Trie.prototype.lookup_node = function (word) {
 	node = this.root;
 
-	for (idx in word) {
-		letter = word[idx];
+	for (var i = 0; i < word.length; i++) {
+		letter = word[i];
 
 		edges = node.get_edges();
 		if (letter in edges) {
@@ -115,7 +115,7 @@ Trie.prototype.lookup_completions = function (start_node, max_completions) {
 		var path = queue.pop();
 		var vertex = path[path.length - 1];
 		var cnodes = vertex.get_edges();
-		for (letter in cnodes) {
+		for (var letter in cnodes) {
 			node = cnodes[letter];
 
 			if (node.is_final) {

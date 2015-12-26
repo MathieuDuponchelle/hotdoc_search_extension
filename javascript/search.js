@@ -79,10 +79,10 @@ document.getElementById("lookup").onkeyup=function () {
 
 		result = result.replace(/\|/g, '_');
 		result = result.replace(/}/g, '.');
-	new_html += '<li>' + result + '</li>'
-}
+		new_html += '<li>' + result + '</li>';
+	}
 
-new_html += '</ul>';
+	new_html += '</ul>';
 
-result_area.innerHTML = new_html;
+	result_area.innerHTML = new_html;
 };

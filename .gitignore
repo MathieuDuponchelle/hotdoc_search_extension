@@ -1,4 +1,11 @@
-__pycache__
 *.pyc
-*.trie
+*.o
+*.hi
 *.swp
+*.so
+*.dot
+build
+dist
+*.egg-info/
+*.eggs
+*.trie

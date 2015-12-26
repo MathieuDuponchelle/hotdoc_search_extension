@@ -29,10 +29,9 @@ def lxml_parse_file(root_dir, filename):
             token = token.lower()
             if token in stop_words:
                 continue
-            original = token
             token = token.replace('.', '}')
             token = token.replace('_', '|')
-            search_index[token].add((anchor_url, original))
+            search_index[token].add(anchor_url)
 
 def prepare_output_folder(dest):
     searchdir = os.path.join(dest, 'search')

@@ -18,8 +18,8 @@ class SearchExtension(BaseExtension):
     def __init__(self, doc_tool, args):
         BaseExtension.__init__(self, doc_tool, args)
         self.enabled = False
-        self.scripts = set([os.path.abspath(os.path.join(here, '..', 'javascript', script))
-                for script in ['trie.js', 'search.js']])
+        self.script = os.path.abspath(os.path.join(here, '..', 'javascript',
+            'trie.js'))
 
     def setup(self):
         self.enabled = self.doc_tool.output_format == 'html'
@@ -39,7 +39,7 @@ class SearchExtension(BaseExtension):
         create_index(self.doc_tool.output, dest)
 
     def __formatting_page(self, formatter, page):
-        page.output_attrs['html']['scripts'].update(self.scripts)
+        page.output_attrs['html']['scripts'].add(self.script)
 
 def get_extension_classes():
     return [SearchExtension]
