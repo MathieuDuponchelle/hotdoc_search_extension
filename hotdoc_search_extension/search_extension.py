@@ -34,9 +34,12 @@ class SearchExtension(BaseExtension):
             return
 
         # This is needed for working xhr
-        dest = os.path.join(self.doc_tool.get_assets_path(), 'js')
+        assets_path = self.doc_tool.get_assets_path()
+        exclude_dirs = [os.path.join(assets_path, d) for d in ['assets']]
+        dest = os.path.join(assets_path, 'js')
 
-        create_index(self.doc_tool.output, dest)
+        create_index(self.doc_tool.output, exclude_dirs=exclude_dirs,
+                dest=dest)
 
     def __formatting_page(self, formatter, page):
         page.output_attrs['html']['scripts'].add(self.script)
