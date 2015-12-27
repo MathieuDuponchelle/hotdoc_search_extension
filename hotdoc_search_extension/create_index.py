@@ -105,7 +105,7 @@ def dump(index, dest):
 
 def create_index(root_dir, exclude_dirs=None, dest='.'):
     search_dir = os.path.join(dest, 'search')
-    fragments_dir = os.path.join(search_dir, 'fragments')
+    fragments_dir = os.path.join(search_dir, 'hotdoc_fragments')
     prepare_folder(search_dir)
     prepare_folder(fragments_dir)
 
