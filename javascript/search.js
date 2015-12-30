@@ -1,18 +1,13 @@
-var req = new XMLHttpRequest();
-req.open("GET", "dumped.trie", true);
-req.overrideMimeType('text\/plain; charset=x-user-defined');
-
 var trie = undefined;
-var here = dirname(window.location.href);
-
-req.onload = function (event) {
-	data = req.responseText;
-	console.time('trie_creation');
-	trie = new Trie(data);
-	console.timeEnd('trie_creation');
-};
-
-req.send(null);
+var head = document.getElementsByTagName('head')[0];
+var script = document.createElement('script');
+script.type = 'text/javascript';
+script.onload = function() {
+	trie = new Trie(trie_data, true);
+	console.log("loaded trie, testing", trie.lookup_node("abecedary"));
+}
+script.src = 'trie_index.js';
+head.appendChild(script);
 
 function dirname(path) {
 	return path.replace(/\\/g, '/')

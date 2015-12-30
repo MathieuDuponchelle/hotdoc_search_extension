@@ -172,27 +172,35 @@ class Trie:
     def get_node_by_index(self, index):
         assert(self.frozen)
 
-        bnode = from_bytes(
-                base64.b64decode(self._binary_data[index * 8:index * 8 + 8]),
+        bnode = from_bytes(self._binary_data[index * 4:index * 4 + 4],
                 byteorder='big')
 
         return TrieNode.from_binary(self, bnode)
 
     def encode(self):
         data = bytearray()
+        b64data = bytearray()
         res = int(1) << 7
         res |= (1 << 6)
         res |= 30
-        data += base64.b64encode(to_bytes(res, 4, byteorder='big'))
+        raw_node = to_bytes(res, 4, byteorder='big')
+        data += raw_node
+        b64data += base64.b64encode(raw_node)
         unrolled = self._unroll(self._root)
         for node in unrolled:
-            self._encode_node(node, data)
-        return data
+            self._encode_node(node, data, b64data)
+        return data, b64data
 
+    def to_file(self, raw_filename, js_filename=None):
+        data, b64_data = self.encode()
+        with open (raw_filename, 'wb') as f:
+            f.write(data)
 
-    def to_file(self, filename):
-        with open (filename, 'wb') as dump_file:
-            dump_file.write(self.encode())
+        if js_filename is not None:
+            with open(js_filename, 'wb') as f:
+                f.write(bytes(b"var trie_data=\""))
+                f.write(b64_data)
+                f.write(bytes(b"\";"))
 
     def _unroll(self, node):
         unrolled = []
@@ -222,7 +230,7 @@ class Trie:
 
         return unrolled
 
-    def _encode_node(self, node, data):
+    def _encode_node(self, node, data, b64data):
         first_child_id = 0
         if node.edges:
             first_child_id = sorted(node.edges.items())[0][1].bft_id
@@ -232,4 +240,6 @@ class Trie:
         if node.final:
             res |= (1 << 5)
         res |= clamp_letter(node.letter)
-        data += base64.b64encode(to_bytes(res, 4, byteorder='big'))
+        raw_node = to_bytes(res, 4, byteorder='big')
+        data += raw_node
+        b64data += base64.b64encode(raw_node)

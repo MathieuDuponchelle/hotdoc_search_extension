@@ -58,13 +58,19 @@ TrieNode.prototype.get_word = function() {
 	return (word_array.reverse().join(''));
 };
 
-function bytes_to_uint32be(data, index) {
+function bytes_to_uint32be(data, index, is_b64_encoded) {
 	var result = 0;
 	var i = 0;
+	var bin_node;
+	if (is_b64_encoded) {
+		bin_node = atob(data.slice(index * 8, index * 8 + 8));
+	} else {
+		bin_node = data.slice(index * 4, index * 4 + 4);
+	}
 
 	while (i < 4) {
 		result = result << 8;
-		var val = (data[index * 4 + i].charCodeAt(0)) & 0xFF;
+		var val = (bin_node[i].charCodeAt(0)) & 0xFF;
 		result += val;
 		i += 1;
 	}
@@ -72,13 +78,14 @@ function bytes_to_uint32be(data, index) {
 	return result;
 }
 
-function Trie(data) {
+function Trie(data, is_b64_encoded) {
 	this.data = data;
+	this.is_b64_encoded = is_b64_encoded;
 	this.root = this.get_node_by_index(0);
 }
 
 Trie.prototype.get_node_by_index = function(idx) {
-	var uint32be = 	bytes_to_uint32be(this.data, idx);
+	var uint32be = 	bytes_to_uint32be(this.data, idx, this.is_b64_encoded);
 	return new TrieNode(this, uint32be);
 };
 

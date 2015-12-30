@@ -34,7 +34,8 @@ if __name__ == '__main__':
             sys.stderr.write("{0}\r".format(word_count))
             sys.stderr.flush()
 
-    trie.to_file(os.path.join(here, 'dumped.trie'))
+    trie.to_file(os.path.join(here, 'dumped.trie'),
+            os.path.join(here, 'trie_index.js'))
 
     try:
         trie.get_node_by_index(0)

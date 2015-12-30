@@ -101,7 +101,8 @@ def dump(index, dest):
         with open (os.path.join(dest, 'search', key), 'w') as f:
             f.write(json.dumps(metadata))
 
-    trie.to_file(os.path.join(dest, 'search', 'dumped.trie'))
+    trie.to_file(os.path.join(dest, 'dumped.trie'),
+            os.path.join(dest, 'trie_index.js'))
 
 def create_index(root_dir, exclude_dirs=None, dest='.'):
     search_dir = os.path.join(dest, 'search')
