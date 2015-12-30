@@ -1,6 +1,8 @@
 # This class represents a node in the trie. It
 # has a list of edges to other nodes.
 
+import base64
+
 LETTER_MASK = 0x1F
 FINAL_MASK = 1 << 5
 BFT_LAST_MASK = 1 << 6
@@ -170,20 +172,27 @@ class Trie:
     def get_node_by_index(self, index):
         assert(self.frozen)
 
-        bnode = from_bytes(self._binary_data[index * 4:index * 4 + 4],
+        bnode = from_bytes(
+                base64.b64decode(self._binary_data[index * 8:index * 8 + 8]),
                 byteorder='big')
 
         return TrieNode.from_binary(self, bnode)
 
+    def encode(self):
+        data = bytearray()
+        res = int(1) << 7
+        res |= (1 << 6)
+        res |= 30
+        data += base64.b64encode(to_bytes(res, 4, byteorder='big'))
+        unrolled = self._unroll(self._root)
+        for node in unrolled:
+            self._encode_node(node, data)
+        return data
+
+
     def to_file(self, filename):
         with open (filename, 'wb') as dump_file:
-            res = int(1) << 7
-            res |= (1 << 6)
-            res |= 30
-            dump_file.write(to_bytes(res, 4, byteorder='big'))
-            unrolled = self._unroll(self._root)
-            for node in unrolled:
-                self._dump_node(node, dump_file)
+            dump_file.write(self.encode())
 
     def _unroll(self, node):
         unrolled = []
@@ -213,7 +222,7 @@ class Trie:
 
         return unrolled
 
-    def _dump_node(self, node, dump_file):
+    def _encode_node(self, node, data):
         first_child_id = 0
         if node.edges:
             first_child_id = sorted(node.edges.items())[0][1].bft_id
@@ -223,4 +232,4 @@ class Trie:
         if node.final:
             res |= (1 << 5)
         res |= clamp_letter(node.letter)
-        dump_file.write(to_bytes(res, 4, byteorder='big'))
+        data += base64.b64encode(to_bytes(res, 4, byteorder='big'))
