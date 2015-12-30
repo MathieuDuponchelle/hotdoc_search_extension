@@ -54,19 +54,30 @@ document.getElementById("lookup").onkeyup=function () {
 			results.push(completions[idx].get_word());
 		}
 		new_html += '<p>Found some completions</p>';
-	} else {
-		corrections = trie.search(query, 2);
-		var sorted_keys = getSortedKeys(corrections);
+	} else if (query.length > 3) {
+		var submatches = trie.lookup_submatches(query, 5);
 
-		if (sorted_keys.length) {
-			new_html += '<p>Did you mean ?</p>';
-		} else {
-			new_html += '<p>Nothing relevant found</p>';
+		if (submatches.length > 0) {
+			new_html += '<p>Found some submatches</p>';
+			for (idx in submatches) {
+				results.push(submatches[idx].get_word());
+			}
 		}
 
-		for (idx in sorted_keys) {
-			var word = sorted_keys[idx];
-			results.push(word);
+		if (submatches.length < 5) {
+			var corrections = trie.search(query, 2);
+			var sorted_keys = getSortedKeys(corrections);
+
+			if (sorted_keys.length) {
+				new_html += '<p>Did you mean ?</p>';
+			} else {
+				new_html += '<p>Nothing relevant found</p>';
+			}
+
+			for (idx in sorted_keys) {
+				var word = sorted_keys[idx];
+				results.push(word);
+			}
 		}
 	}
 

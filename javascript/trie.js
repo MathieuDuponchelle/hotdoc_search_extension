@@ -79,16 +79,22 @@ function Trie(data) {
 
 Trie.prototype.get_node_by_index = function(idx) {
 	var uint32be = 	bytes_to_uint32be(this.data, idx);
-	return new TrieNode(this, uint32be); 
+	return new TrieNode(this, uint32be);
 };
 
-Trie.prototype.lookup_node = function (word) {
-	node = this.root;
+Trie.prototype.lookup_node = function (word, start_node) {
+	var node;
+
+	if (start_node === undefined) {
+		node = this.root;
+	} else {
+		node = start_node;
+	}
 
 	for (var i = 0; i < word.length; i++) {
-		letter = word[i];
+		var letter = word[i];
 
-		edges = node.get_edges();
+		var edges = node.get_edges();
 		if (letter in edges) {
 			node = edges[letter];
 		} else {
@@ -135,6 +141,61 @@ Trie.prototype.lookup_completions = function (start_node, max_completions) {
 
 	return completions;
 };
+
+Trie.prototype.submatches_for_node = function (node, word, submatches, max_submatches) {
+	var match = this.lookup_node(word, node);
+
+	if (!match) {
+		return;
+	}
+
+	if (match.is_final) {
+		submatches.push(match);
+	}
+
+	if (submatches.length === max_submatches) {
+		return;
+	}
+
+	var completions = this.lookup_completions(match,
+			max_submatches - submatches.length);
+
+	submatches.push.apply(submatches, completions);
+}
+
+Trie.prototype.lookup_submatches = function (word, max_submatches) {
+	var submatches = [];
+	var queue = [[this.root]];
+	var node = null;
+
+	this.submatches_for_node(this.root, word, submatches, max_submatches);
+
+	if (submatches.length >= max_submatches) {
+		return submatches;
+	}
+
+	while (queue.length) {
+		var path = queue.pop();
+		var vertex = path[path.length - 1];
+		var cnodes = vertex.get_edges();
+		for (var letter in cnodes) {
+			node = cnodes[letter];
+
+			this.submatches_for_node(node, word, submatches, max_submatches);
+
+			if (submatches.length >= max_submatches) {
+				queue = [];
+				break;
+			}
+
+			var new_path = path.slice();
+			new_path.push(node);
+			queue.push(new_path);
+		}
+	}
+
+	return submatches;
+}
 
 function my_range (arg_one, arg_two) {
 	var res = new Array();
