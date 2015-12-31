@@ -54,7 +54,9 @@ def write_fragment(fragments_dir, url, text):
         os.makedirs(os.path.dirname(dest))
         f = open(dest, 'w')
     finally:
-        f.write(text)
+        f.write("fragment_downloaded_cb(")
+        f.write(json.dumps({"url": url, "fragment": text}))
+        f.write(");")
         f.close()
 
 def parse_file(root_dir, filename, stop_words, fragments_dir):
@@ -96,12 +98,14 @@ def dump(index, dest):
 
         key = key.replace('}', '.')
         key = key.replace('|', '_')
-        metadata = {'urls': list(value)}
+        metadata = {'token': key, 'urls': list(value)}
 
         with open (os.path.join(dest, 'search', key), 'w') as f:
+            f.write("urls_downloaded_cb(")
             f.write(json.dumps(metadata))
+            f.write(");")
 
-    trie.to_file(os.path.join(dest, 'dumped.trie'),
+    trie.to_file(os.path.join(dest, 'search', 'dumped.trie'),
             os.path.join(dest, 'trie_index.js'))
 
 def create_index(root_dir, exclude_dirs=None, dest='.'):
