@@ -1,4 +1,4 @@
-import os
+import os, shutil
 
 from hotdoc.core.base_extension import BaseExtension
 from hotdoc.core.base_formatter import Formatter
@@ -38,8 +38,19 @@ class SearchExtension(BaseExtension):
         exclude_dirs = [os.path.join(assets_path, d) for d in ['assets']]
         dest = os.path.join(assets_path, 'js')
 
+        topdir = os.path.abspath(os.path.join(assets_path, '..'))
+
+        subdirs = next(os.walk(topdir))[1]
+        subdirs.append(topdir)
+
         create_index(self.doc_tool.output, exclude_dirs=exclude_dirs,
                 dest=dest)
+
+        for subdir in subdirs:
+            if subdir == 'assets':
+                continue
+            shutil.copyfile(os.path.join(dest, 'search', 'dumped.trie'),
+                    os.path.join(topdir, subdir, 'dumped.trie'))
 
     def __formatting_page(self, formatter, page):
         page.output_attrs['html']['scripts'].add(self.script)
