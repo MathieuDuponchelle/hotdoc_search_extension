@@ -4,6 +4,7 @@
 import sys, re, os, shutil, json
 
 from hotdoc_search_extension.trie import Trie
+from hotdoc_search_extension.utils import OrderedSet
 from lxml import etree
 from collections import defaultdict
 
@@ -19,6 +20,13 @@ INITIAL_SELECTOR=(
 '/div[@id="main"]'
 )
 
+TITLE_SELECTOR=(
+'./ul[@class="base_symbol_header"]'
+'/li'
+'/h3'
+'/span'
+'/code'
+)
 
 tok_regex = re.compile(r'[a-zA-Z_][a-zA-Z_\.]*[a-zA-Z_]')
 
@@ -71,11 +79,18 @@ def parse_file(root_dir, filename, stop_words, fragments_dir):
         section_url = '%s#%s' % (url, section_id)
         section_text = ''
 
+        for tok, text in parse_content(section, stop_words,
+                selector=TITLE_SELECTOR):
+            section_text += text
+            if tok is None:
+                continue
+            yield tok, section_url, True
+
         for tok, text in parse_content(section, stop_words):
             section_text += text
             if tok is None:
                 continue
-            yield tok, section_url
+            yield tok, section_url, False
 
         fragment = etree.tostring(section, encoding='unicode')
         write_fragment(fragments_dir, section_url, fragment)
@@ -98,7 +113,7 @@ def dump(index, dest):
 
         key = key.replace('}', '.')
         key = key.replace('|', '_')
-        metadata = {'token': key, 'urls': list(value)}
+        metadata = {'token': key, 'urls': list(OrderedSet(value))}
 
         with open (os.path.join(dest, 'search', key), 'w') as f:
             f.write("urls_downloaded_cb(")
@@ -123,15 +138,18 @@ def create_index(root_dir, exclude_dirs=None, dest='.'):
 
     search_index = {}
 
-    search_index = defaultdict(set)
+    search_index = defaultdict(list)
 
     for root, dirs, files in os.walk(root_dir, topdown=True):
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
         for f in files:
             if f.endswith(".html"):
-                for token, section_url in parse_file(root_dir, os.path.join(root,
+                for token, section_url, prioritize in parse_file(root_dir, os.path.join(root,
                     f), stop_words, fragments_dir):
-                    search_index[token].add(section_url)
+                    if not prioritize:
+                        search_index[token].append(section_url)
+                    else:
+                        search_index[token].insert(0, section_url)
 
     dump(sorted(search_index.items()), dest)
 
