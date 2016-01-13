@@ -111,18 +111,43 @@ class Trie:
         node.final = True
         self._previous_word = word
 
+    def remove(self, word):
+        if (len(word)) == 0:
+            parent = None
+        elif len(word) == 1:
+            parent = self.root
+        else:
+            parent = self.lookup(word[:-1])
+
+        if not parent:
+            print ("Can't remove word, not in trie")
+            return False
+
+        node = parent.edges.get(word[-1])  
+
+        if not node:
+            print ("Can't remove word, not in trie")
+            return False
+
+        node.final = False
+        if not node.edges:
+            parent.edges.pop(word[-1])
+
+        return True
+
     def lookup(self, word):
         node = self._root
         for letter in word:
             edges = node.edges
             if letter not in edges:
-                return False
+                return None
             node = edges[letter]
 
-        if node.final:
-            return True
+        return node
 
-        return False
+    def exists(self, word):
+        node = self.lookup(word)
+        return bool(node and node.final)
 
     def search(self, word, max_cost):
         # build first row

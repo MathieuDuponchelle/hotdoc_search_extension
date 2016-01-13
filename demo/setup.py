@@ -27,12 +27,18 @@ if __name__ == '__main__':
             continue
 
         word_count += 1
-        # insert all words, using the reversed version as the data associated with
-        # it
         trie.insert(word)
         if (word_count % 100) == 0:
             sys.stderr.write("{0}\r".format(word_count))
             sys.stderr.flush()
+
+    print ("Should be True:", trie.exists('abaff'))
+    print ("Should be False:", trie.exists('completenonsense'))
+    print ("Should be True:", trie.exists('abalienate'))
+    print ("Should be True", trie.exists('abalienated'))
+    print ("Should be True", trie.remove('abalienate'))
+    print ("Should be False", trie.exists('abalienate'))
+    print ("Should be True", trie.exists('abalienated'))
 
     trie.to_file(os.path.join(here, 'dumped.trie'),
             os.path.join(here, 'trie_index.js'))
@@ -55,11 +61,5 @@ if __name__ == '__main__':
     except AssertionError:
         pass
 
-    # True
-    print (trie.lookup('abaff'))
-    # True
-    print (ftrie.lookup('abaff'))
-    # False
-    print (trie.lookup('completenonsense'))
-    # False
-    print (ftrie.lookup('completenonsense'))
+    print ("Should be True", ftrie.exists('abaff'))
+    print ("Should be False", ftrie.exists('completenonsense'))
