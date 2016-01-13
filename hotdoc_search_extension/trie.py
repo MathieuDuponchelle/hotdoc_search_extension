@@ -86,21 +86,14 @@ class Trie:
     def insert(self, word):
         assert(not self.frozen)
 
-        if word == self._previous_word:
-            return
-
-        elif word < self._previous_word:
-            raise Exception("Error: Words must be inserted in alphabetical " +
-                            "order.")
-
         # find common prefix between word and previous word
         common_prefix = 0
         node = self._root
-        for i in range(min(len(word), len(self._previous_word))):
-            letter = word[i]
-            if letter != self._previous_word[i]:
+        for letter in word:
+            if letter in node.edges:
+                node = node.edges[letter]
+            else:
                 break
-            node = node.edges[letter]
             common_prefix += 1
 
         for letter in word[common_prefix:]:
@@ -114,8 +107,6 @@ class Trie:
     def remove(self, word):
         if (len(word)) == 0:
             parent = None
-        elif len(word) == 1:
-            parent = self.root
         else:
             parent = self.lookup(word[:-1])
 

@@ -1,4 +1,5 @@
 import sys, re, os, shutil
+from random import shuffle
 from hotdoc_search_extension.trie import Trie
 
 if __name__ == '__main__':
@@ -21,7 +22,9 @@ if __name__ == '__main__':
     with open(DICT, 'r') as f:
         words = [w.lower() for w in f.read().split()]
 
-    words.sort()
+    # Make sure unsorted insertions work.
+    shuffle(words)
+
     for word in words:
         if not re.match(r'^[a-z]+$', word):
             continue
