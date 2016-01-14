@@ -1,8 +1,8 @@
-import os, shutil
+import os, shutil, json
 
 from hotdoc.core.base_extension import BaseExtension
 from hotdoc.core.base_formatter import Formatter
-from hotdoc_search_extension.create_index import create_index
+from hotdoc_search_extension.create_index import SearchIndex
 
 DESCRIPTION=\
 """
@@ -11,6 +11,16 @@ for html documentation produced by hotdoc.
 """
 
 here = os.path.dirname(__file__)
+
+def list_html_files(root_dir, exclude_dirs):
+    html_files = []
+    for root, dirs, files in os.walk(root_dir, topdown=True):
+        dirs[:] = [d for d in dirs if d not in exclude_dirs]
+        for f in files:
+            if f.endswith(".html"):
+                html_files.append(os.path.join(root, f))
+
+    return html_files
 
 class SearchExtension(BaseExtension):
     EXTENSION_NAME='search'
@@ -23,19 +33,12 @@ class SearchExtension(BaseExtension):
 
     def setup(self):
         self.enabled = self.doc_tool.output_format == 'html'
-
-        if not self.enabled:
-            return
-
         Formatter.formatting_page_signal.connect(self.__formatting_page)
 
-    def finalize(self):
-        if not self.enabled:
-            return
 
-        # This is needed for working xhr
+
+    def finalize(self):
         assets_path = self.doc_tool.get_assets_path()
-        exclude_dirs = [os.path.join(assets_path, d) for d in ['assets']]
         dest = os.path.join(assets_path, 'js')
 
         topdir = os.path.abspath(os.path.join(assets_path, '..'))
@@ -43,13 +46,23 @@ class SearchExtension(BaseExtension):
         subdirs = next(os.walk(topdir))[1]
         subdirs.append(topdir)
 
-        create_index(self.doc_tool.output, exclude_dirs=exclude_dirs,
-                dest=dest)
+        exclude_dirs = ['assets']
+        sources = list_html_files(self.doc_tool.output, exclude_dirs)
+        stale, unlisted = self.get_stale_files(sources)
+
+        stale |= unlisted
+
+        if not stale:
+            return
+
+        index = SearchIndex(self.doc_tool.output, dest,
+                self.doc_tool.get_private_folder())
+        index.scan(stale)
 
         for subdir in subdirs:
             if subdir == 'assets':
                 continue
-            shutil.copyfile(os.path.join(dest, 'search', 'dumped.trie'),
+            shutil.copyfile(os.path.join(self.doc_tool.get_private_folder(), 'search.trie'),
                     os.path.join(topdir, subdir, 'dumped.trie'))
 
     def __formatting_page(self, formatter, page):

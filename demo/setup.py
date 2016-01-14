@@ -46,23 +46,29 @@ if __name__ == '__main__':
     trie.to_file(os.path.join(here, 'dumped.trie'),
             os.path.join(here, 'trie_index.js'))
 
-    try:
-        trie.get_node_by_index(0)
-        print ("Error: shouldn't be possible to get node by index in a "
-               "non-frozen trie")
-        sys.exit(-1)
-    except AssertionError:
-        pass
-
     ftrie = Trie.from_file(os.path.join(here, 'dumped.trie'))
 
-    # Can't insert in frozen trie
-    try:
-        ftrie.insert("palapalapa")
-        print ("Error: shouldn't be possible to insert in frozen trie")
-        sys.exit(-1)
-    except AssertionError:
-        pass
+    from datetime import datetime
+    import cProfile
+    dest = os.path.join(here, 'dumped2.trie')
+    print 'to file now'
+    n = datetime.now()
+    #cProfile.run('ftrie.to_file(dest)', 'runstats')
+    ftrie.to_file(dest)
+    print "to file takes", datetime.now() - n
+
+    ftrie2 = Trie.from_file(dest)
+    print ("Should be True", ftrie2.exists('abaff'))
+    print ("Should be False", ftrie2.exists('completenonsense'))
 
     print ("Should be True", ftrie.exists('abaff'))
     print ("Should be False", ftrie.exists('completenonsense'))
+
+    print ("Removal in binary trie nao")
+    ftrie.remove('abaff')
+    print ("Should be False", ftrie.exists('abaff'))    
+    print ("Insertion in binary trie nao")
+    ftrie.insert('abaff')
+    print ("Should be True", ftrie.exists('abaff'))
+
+    

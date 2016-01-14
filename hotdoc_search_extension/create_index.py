@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-import sys, re, os, shutil, json
+import sys, re, os, shutil, json, glob
+import cPickle as pickle
+
+from lxml import etree
+from collections import defaultdict
 
 from hotdoc_search_extension.trie import Trie
 from hotdoc_search_extension.utils import OrderedSet
-from lxml import etree
-from collections import defaultdict
 
 SECTIONS_SELECTOR=(
 './div[@id]'
@@ -69,7 +71,12 @@ def write_fragment(fragments_dir, url, text):
 
 def parse_file(root_dir, filename, stop_words, fragments_dir):
     root = etree.parse(filename).getroot()
-    initial = root.xpath(INITIAL_SELECTOR)[0]
+    initial = root.xpath(INITIAL_SELECTOR)
+
+    if not len(initial):
+        return
+
+    initial = initial[0]
 
     url = os.path.relpath(filename, root_dir)
 
@@ -96,6 +103,9 @@ def parse_file(root_dir, filename, stop_words, fragments_dir):
         write_fragment(fragments_dir, section_url, fragment)
 
 def prepare_folder(dest):
+    if os.path.isdir(dest):
+        return
+
     try:
         shutil.rmtree (dest)
     except OSError as e:
@@ -106,52 +116,98 @@ def prepare_folder(dest):
     except OSError:
         pass
 
-def dump(index, dest):
-    trie = Trie()
-    for key, value in index:
-        trie.insert(key)
+class SearchIndex(object):
+    def __init__(self, scan_dir, output_dir, private_dir):
+        self.__scan_dir = scan_dir
+        self.__output_dir = output_dir
+        self.__private_dir = private_dir
+        self.__search_dir = os.path.join(self.__output_dir, 'search')
+        self.__fragments_dir = os.path.join(self.__search_dir, 'hotdoc_fragments')
 
-        key = key.replace('}', '.')
-        key = key.replace('|', '_')
-        metadata = {'token': key, 'urls': list(OrderedSet(value))}
+        prepare_folder(self.__search_dir)
+        prepare_folder(self.__fragments_dir)
 
-        with open (os.path.join(dest, 'search', key), 'w') as f:
-            f.write("urls_downloaded_cb(")
-            f.write(json.dumps(metadata))
-            f.write(");")
+        self.__full_index = defaultdict(list)
+        self.__new_index = defaultdict(list)
+        self.__trie = Trie()
 
-    trie.to_file(os.path.join(dest, 'search', 'dumped.trie'),
-            os.path.join(dest, 'trie_index.js'))
+    def scan(self, stale_filenames):
+        self.__load(stale_filenames)
+        self.__fill(stale_filenames)
+        self.__save()
 
-def create_index(root_dir, exclude_dirs=None, dest='.'):
-    search_dir = os.path.join(dest, 'search')
-    fragments_dir = os.path.join(search_dir, 'hotdoc_fragments')
-    prepare_folder(search_dir)
-    prepare_folder(fragments_dir)
+    def __get_fragments(self, filenames):
+        fragments = set()
 
-    here = os.path.dirname(__file__)
-    with open(os.path.join(here, 'stopwords.txt'), 'r') as f:
-        stop_words = set(f.read().split())
+        for filename in filenames:
+            url = os.path.relpath(filename, self.__scan_dir)
+            for fragment in glob.glob(os.path.join(self.__fragments_dir, url) + '*'):
+                fragments.add(os.path.relpath(fragment,
+                    self.__fragments_dir)[:-9])
+                os.unlink(fragment)
 
-    if exclude_dirs is None:
-        exclude_dirs=[]
+        return fragments
 
-    search_index = {}
+    def __load(self, stale_filenames):
+        to_remove = self.__get_fragments(stale_filenames)
 
-    search_index = defaultdict(list)
+        trie_path = os.path.join(self.__private_dir, 'search.trie')
+        if os.path.exists(trie_path):
+            self.__trie = Trie.from_file(trie_path)
 
-    for root, dirs, files in os.walk(root_dir, topdown=True):
-        dirs[:] = [d for d in dirs if d not in exclude_dirs]
-        for f in files:
-            if f.endswith(".html"):
-                for token, section_url, prioritize in parse_file(root_dir, os.path.join(root,
-                    f), stop_words, fragments_dir):
-                    if not prioritize:
-                        search_index[token].append(section_url)
-                    else:
-                        search_index[token].insert(0, section_url)
+        search_index_path = os.path.join(self.__private_dir, 'search.json')
+        if os.path.exists(search_index_path):
+            with open(search_index_path, 'r') as f:
+                previous_index = json.loads(f.read())
 
-    dump(sorted(search_index.items()), dest)
+            for token, fragment_urls in previous_index.items():
+                new_set = list(OrderedSet(fragment_urls) - to_remove)
+
+                if new_set:
+                    self.__full_index[token] = new_set
+                else:
+                    self.__trie.remove(token)
+                    token = token.replace('}', '.')
+                    token = token.replace('|', '_')
+                    os.unlink(os.path.join(self.__search_dir, token))
+
+    def __fill(self, filenames):
+        here = os.path.dirname(__file__)
+        with open(os.path.join(here, 'stopwords.txt'), 'r') as f:
+            stop_words = set(f.read().split())
+
+        for filename in filenames:
+            if not os.path.exists(filename):
+                continue
+
+            for token, section_url, prioritize in parse_file(self.__scan_dir,
+                    filename, stop_words, self.__fragments_dir):
+                if not prioritize:
+                    self.__full_index[token].append(section_url)
+                    self.__new_index[token].append(section_url)
+                else:
+                    self.__full_index[token].insert(0, section_url)
+                    self.__new_index[token].insert(0, section_url)
+
+    def __save(self):
+        for key, value in sorted(self.__new_index.items()):
+            self.__trie.insert(key)
+
+            key = key.replace('}', '.')
+            key = key.replace('|', '_')
+            metadata = {'token': key, 'urls': list(OrderedSet(value))}
+
+            with open (os.path.join(self.__search_dir, key), 'w') as f:
+                f.write("urls_downloaded_cb(")
+                f.write(json.dumps(metadata))
+                f.write(");")
+
+        self.__trie.to_file(os.path.join(self.__private_dir, 'search.trie'),
+                os.path.join(self.__output_dir, 'trie_index.js'))
+
+        with open (os.path.join(self.__private_dir, 'search.json'), 'w') as f:
+            f.write(json.dumps(self.__full_index))
+
 
 if __name__=='__main__':
     root_dir = sys.argv[1]
