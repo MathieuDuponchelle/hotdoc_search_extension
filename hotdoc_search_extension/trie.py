@@ -64,6 +64,19 @@ class TrieNode:
         res._edges = None
         return res
 
+    def to_binary(self):
+        first_child_id = 0
+        if self.edges:
+            first_child_id = sorted(self.edges.items())[0][1].bft_id
+        res = int(first_child_id) << 7
+        if self.bft_last:
+            res |= (1 << 6)
+        if self.final:
+            res |= (1 << 5)
+        res |= clamp_letter(self.letter)
+        raw_node = to_bytes(res, 4, byteorder='big')
+        return raw_node
+
 class Trie:
     def __init__(self):
         self._root = TrieNode(self, chr(127))
@@ -238,15 +251,6 @@ class Trie:
         return unrolled
 
     def _encode_node(self, node, data, b64data):
-        first_child_id = 0
-        if node.edges:
-            first_child_id = sorted(node.edges.items())[0][1].bft_id
-        res = int(first_child_id) << 7
-        if node.bft_last:
-            res |= (1 << 6)
-        if node.final:
-            res |= (1 << 5)
-        res |= clamp_letter(node.letter)
-        raw_node = to_bytes(res, 4, byteorder='big')
-        data += raw_node
-        b64data += base64.b64encode(raw_node)
+        bin_node = node.to_binary()
+        data += bin_node
+        b64data += base64.b64encode(bin_node)
