@@ -66,11 +66,8 @@ class TrieNode:
 
 class Trie:
     def __init__(self):
-        self._previous_word = ""
         self._root = TrieNode(self, chr(127))
         self._binary_data = None
-
-        self.frozen = False
 
     @classmethod
     def from_file(cls, filename):
@@ -79,13 +76,10 @@ class Trie:
         with open(filename, 'rb') as f:
             res._binary_data = f.read()
 
-        res.frozen = True
         res._root = res.get_node_by_index(0)
         return res
 
     def insert(self, word):
-        assert(not self.frozen)
-
         # find common prefix between word and previous word
         common_prefix = 0
         node = self._root
@@ -102,7 +96,6 @@ class Trie:
             node = nextNode
 
         node.final = True
-        self._previous_word = word
 
     def remove(self, word):
         if (len(word)) == 0:
@@ -111,13 +104,11 @@ class Trie:
             parent = self.lookup(word[:-1])
 
         if not parent:
-            print ("Can't remove word, not in trie")
             return False
 
         node = parent.edges.get(word[-1])  
 
         if not node:
-            print ("Can't remove word, not in trie")
             return False
 
         node.final = False
@@ -186,7 +177,7 @@ class Trie:
                                      results, max_cost, currentWord + letter)
 
     def get_node_by_index(self, index):
-        assert(self.frozen)
+        assert(self._binary_data is not None)
 
         bnode = from_bytes(self._binary_data[index * 4:index * 4 + 4],
                 byteorder='big')
