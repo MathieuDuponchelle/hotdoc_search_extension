@@ -2,23 +2,12 @@
 # has a list of edges to other nodes.
 
 import base64
+import struct
+import os
 
 LETTER_MASK = 0x1F
 FINAL_MASK = 1 << 5
 BFT_LAST_MASK = 1 << 6
-
-try:
-    to_bytes = int.to_bytes
-    from_bytes = int.from_bytes
-except AttributeError:
-    def to_bytes(n, length, byteorder='big', signed=False):
-        h = '%x' % n
-        s = ('0'*(len(h) % 2) + h).zfill(length*2).decode('hex')
-        return s if byteorder == 'big' else s[::-1]
-
-    def from_bytes(data, byteorder='big'):
-        encoded = str(data).encode('hex')
-        return int(encoded, 16)
 
 def clamp_letter(letter):
     return (ord(letter) - ord('a'))
@@ -74,8 +63,7 @@ class TrieNode:
         if self.final:
             res |= (1 << 5)
         res |= clamp_letter(self.letter)
-        raw_node = to_bytes(res, 4, byteorder='big')
-        return raw_node
+        return res
 
 class Trie:
     def __init__(self):
@@ -87,7 +75,9 @@ class Trie:
         res = cls()
 
         with open(filename, 'rb') as f:
-            res._binary_data = f.read()
+            s = os.path.getsize(filename) / 4
+            format_string = '>%dI' % s
+            res._binary_data = struct.unpack(format_string, f.read())
 
         res._root = res.get_node_by_index(0)
         return res
@@ -192,24 +182,22 @@ class Trie:
     def get_node_by_index(self, index):
         assert(self._binary_data is not None)
 
-        bnode = from_bytes(self._binary_data[index * 4:index * 4 + 4],
-                byteorder='big')
-
+        bnode = self._binary_data[index]
         return TrieNode.from_binary(self, bnode)
 
     def encode(self):
-        data = bytearray()
-        b64data = bytearray()
+        data = []
         res = int(1) << 7
         res |= (1 << 6)
         res |= 30
-        raw_node = to_bytes(res, 4, byteorder='big')
-        data += raw_node
-        b64data += base64.b64encode(raw_node)
+        data.append(res)
         unrolled = self._unroll(self._root)
         for node in unrolled:
-            self._encode_node(node, data, b64data)
-        return data, b64data
+            self._encode_node(node, data)
+        format_string = ">%dI" % len(data)
+        res = struct.pack(format_string, *data)
+        b64data = base64.b64encode(str(res))
+        return res, b64data
 
     def to_file(self, raw_filename, js_filename=None):
         data, b64_data = self.encode()
@@ -250,7 +238,6 @@ class Trie:
 
         return unrolled
 
-    def _encode_node(self, node, data, b64data):
+    def _encode_node(self, node, data):
         bin_node = node.to_binary()
-        data += bin_node
-        b64data += base64.b64encode(bin_node)
+        data.append(bin_node)
