@@ -5,9 +5,9 @@ import base64
 import struct
 import os
 
-LETTER_MASK = 0x1F
-FINAL_MASK = 1 << 5
-BFT_LAST_MASK = 1 << 6
+LETTER_MASK = 0x7F
+FINAL_MASK = 1 << 7
+BFT_LAST_MASK = 1 << 8
 
 def clamp_letter(letter):
     return (ord(letter) - ord('a'))
@@ -49,7 +49,7 @@ class TrieNode:
 
         res.final = bool(bdata & FINAL_MASK)
         res.bft_last = bool(bdata & BFT_LAST_MASK)
-        res.first_child_id = int(bdata >> 7)
+        res.first_child_id = int(bdata >> 9)
         res._edges = None
         return res
 
@@ -57,11 +57,11 @@ class TrieNode:
         first_child_id = 0
         if self.edges:
             first_child_id = sorted(self.edges.items())[0][1].bft_id
-        res = int(first_child_id) << 7
+        res = int(first_child_id) << 9
         if self.bft_last:
-            res |= (1 << 6)
+            res |= (BFT_LAST_MASK)
         if self.final:
-            res |= (1 << 5)
+            res |= (FINAL_MASK)
         res |= clamp_letter(self.letter)
         return res
 
@@ -187,11 +187,15 @@ class Trie:
 
     def encode(self):
         data = []
-        res = int(1) << 7
-        res |= (1 << 6)
+        res = int(1) << 9
+        res |= (BFT_LAST_MASK)
         res |= 30
         data.append(res)
         unrolled = self._unroll(self._root)
+
+        if (len(unrolled) >= 2 ** 23):
+            raise OverflowError("Too many nodes would need to be encoded")
+
         for node in unrolled:
             self._encode_node(node, data)
         format_string = ">%dI" % len(data)
