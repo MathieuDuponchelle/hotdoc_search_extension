@@ -1,12 +1,12 @@
-LETTER_MASK = 0x1F;
-FINAL_MASK = 1 << 5;
-BFT_LAST_MASK = 1 << 6;
+LETTER_MASK = 0x7F;
+FINAL_MASK = 1 << 7;
+BFT_LAST_MASK = 1 << 8;
 
 function TrieNode(trie, data) {
 	this.edges = undefined;
 	this.genitor = null;
 	this.trie = trie;
-	this.letter = String.fromCharCode((data & LETTER_MASK) + 'a'.charCodeAt(0));
+	this.letter = String.fromCharCode((data & LETTER_MASK));
 
 	this.is_final = false;
 	if (data & FINAL_MASK) {
@@ -18,7 +18,7 @@ function TrieNode(trie, data) {
 		this.bft_last = true;
 	}
 
-	this.first_child_id = data >> 7;
+	this.first_child_id = data >> 9;
 }
 
 TrieNode.prototype.get_edges = function() {
@@ -77,10 +77,15 @@ function bytes_to_uint32be(data, index) {
 
 function Trie(data, is_b64_encoded) {
 	this.data = data;
+	this.case_sensitive = true;
 	if (is_b64_encoded) {
 		this.data = atob(data);
 	}
 	this.root = this.get_node_by_index(0);
+}
+
+Trie.prototype.set_case_sensitive = function(case_sensitive) {
+	this.case_sensitive = case_sensitive;
 }
 
 Trie.prototype.get_node_by_index = function(idx) {
@@ -90,6 +95,10 @@ Trie.prototype.get_node_by_index = function(idx) {
 
 Trie.prototype.lookup_node = function (word, start_node) {
 	var node;
+
+	if (!this.case_sensitive) {
+		word = word.toLowerCase();
+	}
 
 	if (start_node === undefined) {
 		node = this.root;
@@ -173,6 +182,10 @@ Trie.prototype.lookup_submatches = function (word, max_submatches) {
 	var submatches = [];
 	var queue = [[this.root]];
 	var node = null;
+
+	if (!this.case_sensitive) {
+		word = word.toLowerCase();
+	}
 
 	this.submatches_for_node(this.root, word, submatches, max_submatches);
 

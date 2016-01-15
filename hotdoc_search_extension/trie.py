@@ -43,7 +43,7 @@ class TrieNode:
 
     @classmethod
     def from_binary(cls, trie, bdata):
-        letter = chr(ord('a') + (bdata & LETTER_MASK))
+        letter = chr(bdata & LETTER_MASK)
 
         res = cls(trie, letter)
 
@@ -62,7 +62,7 @@ class TrieNode:
             res |= (BFT_LAST_MASK)
         if self.final:
             res |= (FINAL_MASK)
-        res |= clamp_letter(self.letter)
+        res |= ord(self.letter)
         return res
 
 class Trie:

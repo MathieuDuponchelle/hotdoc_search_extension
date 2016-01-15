@@ -30,7 +30,7 @@ TITLE_SELECTOR=(
 '/code'
 )
 
-tok_regex = re.compile(r'[a-zA-Z_][a-zA-Z_\.]*[a-zA-Z_]')
+tok_regex = re.compile(r'[a-zA-Z_][a-zA-Z0-9_\.]*[a-zA-Z0-9_]')
 
 def get_sections(root, selector='./div[@id]'):
     return root.xpath(selector)
@@ -44,13 +44,9 @@ def parse_content(section, stop_words, selector='.//p'):
 
         for token in tokens:
             original_token = token + ' '
-            token = token.lower()
             if token in stop_words:
                 yield (None, original_token)
                 continue
-
-            token = token.replace('.', '}')
-            token = token.replace('_', '|')
 
             yield (token, original_token)
 
@@ -92,12 +88,16 @@ def parse_file(root_dir, filename, stop_words, fragments_dir):
             if tok is None:
                 continue
             yield tok, section_url, True
+            if any(c.isupper() for c in tok):
+                yield tok.lower(), section_url, True
 
         for tok, text in parse_content(section, stop_words):
             section_text += text
             if tok is None:
                 continue
             yield tok, section_url, False
+            if any(c.isupper() for c in tok):
+                yield tok.lower(), section_url, False
 
         fragment = etree.tostring(section, encoding='unicode')
         write_fragment(fragments_dir, section_url, fragment)
@@ -167,8 +167,6 @@ class SearchIndex(object):
                     self.__full_index[token] = new_set
                 else:
                     self.__trie.remove(token)
-                    token = token.replace('}', '.')
-                    token = token.replace('|', '_')
                     os.unlink(os.path.join(self.__search_dir, token))
 
     def __fill(self, filenames):
@@ -193,8 +191,6 @@ class SearchIndex(object):
         for key, value in sorted(self.__new_index.items()):
             self.__trie.insert(key)
 
-            key = key.replace('}', '.')
-            key = key.replace('|', '_')
             metadata = {'token': key, 'urls': list(OrderedSet(value))}
 
             with open (os.path.join(self.__search_dir, key), 'w') as f:

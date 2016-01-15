@@ -28,8 +28,7 @@ document.getElementById("lookup").onkeyup=function () {
 	var new_html = '';
 	var results = [];
 
-	var query = this.value.replace(/\./g, '}');
-	query = query.replace(/_/g, '|');
+	var query = this.value
 
 	if (query.length == 0) {
 		result_area.innerHTML = new_html;
@@ -83,8 +82,6 @@ document.getElementById("lookup").onkeyup=function () {
 	for (idx in results) {
 		var result = results[idx];
 
-		result = result.replace(/\|/g, '_');
-		result = result.replace(/}/g, '.');
 		new_html += '<li>' + result + '</li>';
 	}
 
