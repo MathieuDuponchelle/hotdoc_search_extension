@@ -66,7 +66,14 @@ def write_fragment(fragments_dir, url, text):
         f.close()
 
 def parse_file(root_dir, filename, stop_words, fragments_dir):
-    root = etree.parse(filename).getroot()
+    try:
+        root = etree.parse(filename).getroot()
+    except etree.XMLSyntaxError as e:
+        print "Ignoring file", filename, "as it is invalid html"
+        print "You should check the source of the error"
+        print e
+        return
+
     initial = root.xpath(INITIAL_SELECTOR)
 
     if not len(initial):

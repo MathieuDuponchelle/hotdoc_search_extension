@@ -1,7 +1,7 @@
 import os, shutil, json
 
 from hotdoc.core.base_extension import BaseExtension
-from hotdoc.core.base_formatter import Formatter
+from hotdoc.core.doc_tree import Page
 from hotdoc_search_extension.create_index import SearchIndex
 
 DESCRIPTION=\
@@ -33,9 +33,7 @@ class SearchExtension(BaseExtension):
 
     def setup(self):
         self.enabled = self.doc_tool.output_format == 'html'
-        Formatter.formatting_page_signal.connect(self.__formatting_page)
-
-
+        Page.formatting_signal.connect(self.__formatting_page)
 
     def finalize(self):
         assets_path = self.doc_tool.get_assets_path()
@@ -65,7 +63,7 @@ class SearchExtension(BaseExtension):
             shutil.copyfile(os.path.join(self.doc_tool.get_private_folder(), 'search.trie'),
                     os.path.join(topdir, subdir, 'dumped.trie'))
 
-    def __formatting_page(self, formatter, page):
+    def __formatting_page(self, page, formatter):
         page.output_attrs['html']['scripts'].add(self.script)
 
 def get_extension_classes():
