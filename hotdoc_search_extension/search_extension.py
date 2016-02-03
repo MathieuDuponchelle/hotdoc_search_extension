@@ -25,18 +25,18 @@ def list_html_files(root_dir, exclude_dirs):
 class SearchExtension(BaseExtension):
     EXTENSION_NAME='search'
 
-    def __init__(self, doc_tool, args):
-        BaseExtension.__init__(self, doc_tool, args)
+    def __init__(self, doc_repo, args):
+        BaseExtension.__init__(self, doc_repo, args)
         self.enabled = False
         self.script = os.path.abspath(os.path.join(here, '..', 'javascript',
             'trie.js'))
 
     def setup(self):
-        self.enabled = self.doc_tool.output_format == 'html'
+        self.enabled = self.doc_repo.output_format == 'html'
         Page.formatting_signal.connect(self.__formatting_page)
 
     def finalize(self):
-        assets_path = self.doc_tool.get_assets_path()
+        assets_path = os.path.join(self.doc_repo.output, 'assets')
         dest = os.path.join(assets_path, 'js')
 
         topdir = os.path.abspath(os.path.join(assets_path, '..'))
@@ -45,7 +45,7 @@ class SearchExtension(BaseExtension):
         subdirs.append(topdir)
 
         exclude_dirs = ['assets']
-        sources = list_html_files(self.doc_tool.output, exclude_dirs)
+        sources = list_html_files(self.doc_repo.output, exclude_dirs)
         stale, unlisted = self.get_stale_files(sources)
 
         stale |= unlisted
@@ -53,14 +53,14 @@ class SearchExtension(BaseExtension):
         if not stale:
             return
 
-        index = SearchIndex(self.doc_tool.output, dest,
-                self.doc_tool.get_private_folder())
+        index = SearchIndex(self.doc_repo.output, dest,
+                self.doc_repo.get_private_folder())
         index.scan(stale)
 
         for subdir in subdirs:
             if subdir == 'assets':
                 continue
-            shutil.copyfile(os.path.join(self.doc_tool.get_private_folder(), 'search.trie'),
+            shutil.copyfile(os.path.join(self.doc_repo.get_private_folder(), 'search.trie'),
                     os.path.join(topdir, subdir, 'dumped.trie'))
 
     def __formatting_page(self, page, formatter):
