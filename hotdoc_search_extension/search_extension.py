@@ -36,6 +36,10 @@ class SearchExtension(BaseExtension):
         Page.formatting_signal.connect(self.__formatting_page)
 
     def finalize(self):
+        # FIXME
+        if self.doc_repo.incremental:
+            return
+
         assets_path = os.path.join(self.doc_repo.output, 'assets')
         dest = os.path.join(assets_path, 'js')
 
