@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "hotdoc_search_extension",
-    version = "0.6.6",
+    version = "0.6.9",
     keywords = "client-side search full text hotdoc",
     url='https://github.com/hotdoc/hotdoc_search_extension',
     author_email = 'mathieu.duponchelle@opencreed.com',
