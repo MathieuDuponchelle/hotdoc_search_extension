@@ -25,8 +25,8 @@ def list_html_files(root_dir, exclude_dirs):
 class SearchExtension(BaseExtension):
     EXTENSION_NAME='search'
 
-    def __init__(self, doc_repo, args):
-        BaseExtension.__init__(self, doc_repo, args)
+    def __init__(self, doc_repo):
+        BaseExtension.__init__(self, doc_repo)
         self.enabled = False
         self.script = os.path.abspath(os.path.join(here, '..', 'javascript',
             'trie.js'))
