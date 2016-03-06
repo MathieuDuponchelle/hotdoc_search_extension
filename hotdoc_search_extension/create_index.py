@@ -7,8 +7,18 @@ import cPickle as pickle
 from lxml import etree
 from collections import defaultdict
 
+from hotdoc.core.exceptions import InvalidOutputException
+from hotdoc.utils.loggable import info as core_info, warn, Logger
+
 from hotdoc_search_extension.trie import Trie
 from hotdoc_search_extension.utils import OrderedSet
+
+
+def info(message):
+    core_info(message, domain='search-extension')
+
+Logger.register_warning_code('invalid-html', InvalidOutputException,
+                             'search-extension')
 
 SECTIONS_SELECTOR=(
 './div[@id]'
@@ -66,13 +76,28 @@ def write_fragment(fragments_dir, url, text):
         f.close()
 
 def parse_file(root_dir, filename, stop_words, fragments_dir):
-    try:
-        root = etree.parse(filename).getroot()
-    except etree.XMLSyntaxError as e:
-        print "Ignoring file", filename, "as it is invalid html"
-        print "You should check the source of the error"
-        print e
-        return
+    parser = etree.XMLParser(recover=True)
+    root = etree.parse(filename, parser).getroot()
+
+    cnt = 0
+    for e in parser.error_log:
+        msg = '%s at line %d and column %d in file %s' % (
+            e.message, e.line, e.column, filename)
+        if cnt == 0:
+            warn('invalid-html', msg)
+        elif cnt == 1:
+            warn('invalid-html',
+                 'More errors follow, run hotdoc with -v to see them all')
+            info(msg)
+        else:
+            info(msg)
+
+        cnt += 1
+
+    if (parser.error_log):
+        warn('invalid-html',
+            "This html file is somehow invalid, you should have a look "
+            "at the source of the error(s)")
 
     initial = root.xpath(INITIAL_SELECTOR)
 
