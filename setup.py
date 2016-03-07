@@ -16,11 +16,16 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
+
 from setuptools import setup, find_packages
+
+with open(os.path.join('hotdoc_search_extension', 'VERSION.txt'), 'r') as _:
+    VERSION = _.read().strip()
 
 setup(
     name = "hotdoc_search_extension",
-    version = "0.7",
+    version = VERSION,
     keywords = "client-side search full text hotdoc",
     url='https://github.com/hotdoc/hotdoc_search_extension',
     author_email = 'mathieu.duponchelle@opencreed.com',
@@ -30,6 +35,7 @@ setup(
     packages = find_packages(),
     package_data = {
         '': ['stopwords.txt', '*.html'],
+        'hotdoc_search_extension': ['VERSION.txt'],
         'javascript': ['*.js'],
     },
 
