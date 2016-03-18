@@ -45,6 +45,7 @@ class SearchExtension(BaseExtension):
 
     def __init__(self, doc_repo):
         BaseExtension.__init__(self, doc_repo)
+        doc_repo.formatted_signal.connect(self.__build_index)
         self.enabled = False
         self.script = os.path.abspath(os.path.join(here, '..', 'javascript',
             'trie.js'))
@@ -53,7 +54,7 @@ class SearchExtension(BaseExtension):
         self.enabled = self.doc_repo.output_format == 'html'
         Page.formatting_signal.connect(self.__formatting_page)
 
-    def finalize(self):
+    def __build_index(self, doc_repo):
         # FIXME
         if self.doc_repo.incremental:
             return
