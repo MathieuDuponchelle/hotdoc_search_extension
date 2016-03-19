@@ -59,7 +59,10 @@ class SearchExtension(BaseExtension):
         if self.doc_repo.incremental:
             return
 
-        assets_path = os.path.join(self.doc_repo.output, 'assets')
+        formatter = doc_repo.extensions['core'].get_formatter('html')
+        output = os.path.join(doc_repo.output, formatter.get_output_folder())
+
+        assets_path = os.path.join(output, 'assets')
         dest = os.path.join(assets_path, 'js')
 
         topdir = os.path.abspath(os.path.join(assets_path, '..'))
@@ -68,7 +71,7 @@ class SearchExtension(BaseExtension):
         subdirs.append(topdir)
 
         exclude_dirs = ['assets']
-        sources = list_html_files(self.doc_repo.output, exclude_dirs)
+        sources = list_html_files(output, exclude_dirs)
         stale, unlisted = self.get_stale_files(sources)
 
         stale |= unlisted
@@ -76,7 +79,7 @@ class SearchExtension(BaseExtension):
         if not stale:
             return
 
-        index = SearchIndex(self.doc_repo.output, dest,
+        index = SearchIndex(output, dest,
                 self.doc_repo.get_private_folder())
         index.scan(stale)
 
