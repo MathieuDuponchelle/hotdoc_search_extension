@@ -114,12 +114,15 @@ def parse_file(root_dir, filename, stop_words, fragments_dir):
             "This html file is somehow invalid, you should have a look "
             "at the source of the error(s)")
 
-    initial = root.xpath(INITIAL_SELECTOR)
+    if root.attrib.get('id') == 'main':
+        initial = root
+    else:
+        initial = root.xpath(INITIAL_SELECTOR)
 
-    if not len(initial):
-        return
+        if not len(initial):
+            return
 
-    initial = initial[0]
+        initial = initial[0]
 
     url = os.path.relpath(filename, root_dir)
 

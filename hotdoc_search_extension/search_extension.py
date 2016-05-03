@@ -41,7 +41,7 @@ def list_html_files(root_dir, exclude_dirs):
     return html_files
 
 class SearchExtension(BaseExtension):
-    EXTENSION_NAME='search'
+    extension_name='search'
 
     def __init__(self, doc_repo):
         BaseExtension.__init__(self, doc_repo)
@@ -91,6 +91,7 @@ class SearchExtension(BaseExtension):
 
     def __formatting_page(self, page, formatter):
         page.output_attrs['html']['scripts'].add(self.script)
+
 
 def get_extension_classes():
     return [SearchExtension]
