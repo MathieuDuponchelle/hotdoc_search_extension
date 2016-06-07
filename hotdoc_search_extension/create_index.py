@@ -16,10 +16,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys, re, os, shutil, json, glob
+import sys, re, os, shutil, json, glob, io
 import cPickle as pickle
 
 from lxml import etree
+import lxml.html
 from collections import defaultdict
 
 from hotdoc.core.exceptions import InvalidOutputException
@@ -62,7 +63,7 @@ def get_sections(root, selector='./div[@id]'):
 
 def parse_content(section, stop_words, selector='.//p'):
     for elem in section.xpath(selector):
-        text = etree.tostring(elem, method="text",
+        text = lxml.html.tostring(elem, method="text",
                 encoding='unicode')
 
         tokens = tok_regex.findall(text)
@@ -91,28 +92,9 @@ def write_fragment(fragments_dir, url, text):
         f.close()
 
 def parse_file(root_dir, filename, stop_words, fragments_dir):
-    parser = etree.XMLParser(recover=True)
-    root = etree.parse(filename, parser).getroot()
-
-    cnt = 0
-    for e in parser.error_log:
-        msg = '%s at line %d and column %d in file %s' % (
-            e.message, e.line, e.column, filename)
-        if cnt == 0:
-            warn('invalid-html', msg)
-        elif cnt == 1:
-            warn('invalid-html',
-                 'More errors follow, run hotdoc with -v to see them all')
-            info(msg)
-        else:
-            info(msg)
-
-        cnt += 1
-
-    if (parser.error_log):
-        warn('invalid-html',
-            "This html file is somehow invalid, you should have a look "
-            "at the source of the error(s)")
+    with io.open(filename, 'r', encoding='utf-8') as _:
+        contents = _.read()
+    root = etree.HTML(contents)
 
     if root.attrib.get('id') == 'main':
         initial = root
@@ -149,7 +131,7 @@ def parse_file(root_dir, filename, stop_words, fragments_dir):
             if any(c.isupper() for c in tok):
                 yield tok.lower(), section_url, False
 
-        fragment = etree.tostring(section, encoding='unicode')
+        fragment = lxml.html.tostring(section, encoding='unicode')
         write_fragment(fragments_dir, section_url, fragment)
 
 def prepare_folder(dest):
