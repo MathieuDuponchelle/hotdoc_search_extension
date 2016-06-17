@@ -41,11 +41,7 @@ SECTIONS_SELECTOR=(
 )
 
 INITIAL_SELECTOR=(
-'./body'
-'/div[@id="page-wrapper"]'
-'/div[@class="row"]'
-'/div[@class="col-md-8"]'
-'/div[@id="main"]'
+'.//div[@id="main"]'
 )
 
 TITLE_SELECTOR=(
