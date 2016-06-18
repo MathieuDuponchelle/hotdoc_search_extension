@@ -76,6 +76,7 @@ def parse_content(section, stop_words, selector='.//p'):
 
 def write_fragment(fragments_dir, url, text):
     dest = os.path.join(fragments_dir, url + '.fragment')
+    dest = dest.replace('#', '-')
     try:
         f = open(dest, 'w')
     except IOError:
