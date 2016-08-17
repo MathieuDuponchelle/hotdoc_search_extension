@@ -35,8 +35,7 @@ setup(
     packages = find_packages(),
     package_data = {
         '': ['stopwords.txt', '*.html'],
-        'hotdoc_search_extension': ['VERSION.txt'],
-        'javascript': ['*.js'],
+        'hotdoc_search_extension': ['VERSION.txt', 'search.js', 'trie.js'],
     },
 
     entry_points = {'hotdoc.extensions': 'get_extension_classes = hotdoc_search_extension.search_extension:get_extension_classes'},

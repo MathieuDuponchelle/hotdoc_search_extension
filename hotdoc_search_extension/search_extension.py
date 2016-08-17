@@ -47,8 +47,7 @@ class SearchExtension(BaseExtension):
         BaseExtension.__init__(self, doc_repo)
         doc_repo.formatted_signal.connect(self.__build_index)
         self.enabled = False
-        self.script = os.path.abspath(os.path.join(here, '..', 'javascript',
-            'trie.js'))
+        self.script = os.path.abspath(os.path.join(here, 'trie.js'))
 
     def setup(self):
         self.enabled = self.doc_repo.output_format == 'html'

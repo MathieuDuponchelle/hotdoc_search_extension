@@ -5,10 +5,10 @@ from hotdoc_search_extension.trie import Trie
 if __name__ == '__main__':
 
     here = os.path.dirname(__file__)
-    shutil.copy(os.path.join(here, '../javascript/trie.js'),
+    shutil.copy(os.path.join(here, os.pardir, 'trie.js'),
             os.path.join(here, 'trie.js'))
 
-    shutil.copy(os.path.join(here, '../javascript/search.js'),
+    shutil.copy(os.path.join(here, os.pardir, 'search.js'),
             os.path.join(here, 'search.js'))
 
     if os.path.exists(os.path.join(here, 'dumped.trie')):
